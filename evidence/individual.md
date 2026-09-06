@@ -19,12 +19,12 @@
 
 ## Integrante: Germán Yair Martinez Bolaños
 
-- Mi contribución concreta y enlace a archivo, commit anterior o revisión: Revisión técnica independiente del cambio realizado en `App.tsx` referente al manejo del estado de conectividad del backend (`available`/`offline`), y elaboración del documento `docs/risk-register.md` a partir del análisis del caso base.
-- Decisión que puedo explicar y por qué: En `App.tsx`, avalo el uso de la bandera booleana `active` dentro del `useEffect` para el fetch de salud. Es una buena práctica porque si el usuario navega a otra pantalla o se desmonta el componente antes de que el servidor responda, evita que React intente actualizar el estado en un componente desmontado, previniendo advertencias de fugas de memoria. 
-- Comando o prueba proporcionada que ejecuté: Ejecuté `npm run test:smoke` en mi propia máquina sobre una copia limpia.
-- Resultado real que observé: La prueba `course-tests/smoke.test.tsx` pasó correctamente ("renders the reproducible baseline and resolves backend state"). El script de Jest validó el montaje del componente de manera satisfactoria sin warnings adicionales.
-- Qué verifica esa prueba y qué no verifica: Verifica que la aplicación se renderice correctamente en su base y que se resuelva correctamente el estado inicial desde el servidor. No verifica problemas de sincronización de incidencias, tampoco evalúa el uso local real en un dispositivo físico ni comprueba la idempotencia de los datos.
-- Uso de IA: Utilicé un asistente de IA para confirmar y estructurar mi análisis sobre el comportamiento del `useEffect` en la inicialización, y para apoyar la redacción de la matriz de riesgos cruzando la información de `docs/CAMPUSOPS.md`. Revisé y asimilé toda la información reportada.
+- Mi contribución concreta y enlace a archivo, commit anterior o revisión: Revisión y validación de los documentos `docs/requirements.md` y `docs/decision-record.md` redactados inicialmente por mi compañera, confirmando que cubren adecuadamente el problema de conectividad y la justificación de la PWA.
+- Decisión que puedo explicar y por qué: En `docs/decision-record.md`, avalo la decisión de usar una PWA porque evita la fricción de instalar una app desde una tienda (lo cual es vital para los técnicos) y nos permite aprovechar el conocimiento previo en Next.js sin tener que aprender otro lenguaje o framework nativo solo para la entrega.
+- Comando o prueba proporcionada que ejecuté: Ejecuté `npm run verify` en mi entorno local.
+- Resultado real que observé: El comando completó las fases de test y build sin errores fatales, generando el reporte de éxito en `reports/verification.json`.
+- Qué verifica esa prueba y qué no verifica: Verifica que la aplicación compila exitosamente (`next build`) y que pasa las pruebas básicas del starter (`npm test`). No verifica si los requisitos descritos en el documento son correctos, ni comprueba el funcionamiento offline en un dispositivo real.
+- Limitación, dificultad o riesgo que identifiqué: Identificamos que el mayor riesgo a futuro para el soporte offline (PWA) será manejar los conflictos de sincronización cuando el técnico recupere la conexión, ya que requerirá implementar una estrategia sólida con Service Workers que Next.js no provee automáticamente.
+- Uso de IA: Utilicé un asistente de IA para revisar y perfeccionar la redacción de mis evidencias individuales y validar mis conclusiones técnicas sobre el build de Next.js, basándome en el análisis previamente aportado por mi equipo.
 
 > No necesitan inventar un error ni escribir pruebas nuevas. «Ejecuté npm test» es insuficiente como explicación: indiquen qué observa la prueba y qué comportamiento queda fuera.
-
