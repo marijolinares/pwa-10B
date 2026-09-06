@@ -1,43 +1,58 @@
 # Requisitos del producto — documento del equipo
 
-> Sustituyan las orientaciones por su análisis. Los ejemplos muestran el formato; pueden usar otros equivalentes. Los requisitos del producto futuro se documentan ahora y se implementarán en las semanas correspondientes. No hay una cantidad nueva obligatoria de requisitos.
-
 ## 1. Problema y contexto
 
-Expliquen qué dificultad de inspección o mantenimiento resolverán, por qué importa la conectividad y qué queda fuera. Debe entenderse el problema sin conocer su equipo.
+En la UTT, las inspecciones de mantenimiento de laboratorios (redes, electrónica, software) suelen realizarse en zonas donde la conexión a internet no siempre está disponible. Cuando un técnico detecta un hallazgo durante una inspección sin conexión, actualmente no existe una forma confiable de registrarlo en el momento: el registro se pospone, se anota en papel o se olvida, lo que dificulta dar seguimiento oportuno a incidencias que requieren atención.
 
-Ejemplo de inicio: «Un registro interrumpido por la falta de conexión dificulta dar seguimiento a un hallazgo». Adapten y completen: no lo presenten como un diagnóstico real de la UTT sin evidencia.
+Este proyecto busca resolver ese problema mediante una aplicación web progresiva que permita consultar y registrar inspecciones de laboratorio de forma consistente, incluso cuando la conectividad es intermitente.
+
+Queda fuera del alcance de este proyecto: la gestión de inventario de equipo, la programación automática de mantenimientos preventivos, y la integración con sistemas administrativos existentes de la universidad.
 
 ## 2. Usuarios y escenarios
 
-Identifiquen a los usuarios y escriban al menos dos escenarios, uno con conectividad intermitente. En cada escenario indiquen situación inicial, acción y resultado esperado.
+**Usuarios:** técnicos responsables de inspección de laboratorios (los "Técnico A/B/C" que aparecen en los registros) y, en un rol de consulta, coordinadores académicos que revisan el estado general de los laboratorios.
 
-Ejemplo de formato: «Una persona encargada de inspección detecta un hallazgo sin conexión; registra el hallazgo y espera conservarlo para enviarlo después». Es una capacidad futura, no una función exigida en Semana 1.
+**Escenario 1 — con conexión estable:**
+Situación inicial: un coordinador académico quiere revisar el estado reciente de los laboratorios antes de una junta.
+Acción: abre la aplicación y consulta el listado de inspecciones recientes.
+Resultado esperado: ve las inspecciones más recientes con su estado (sin incidencias / requiere atención), responsable y número de hallazgos.
+
+**Escenario 2 — con conectividad intermitente:**
+Situación inicial: un técnico realiza una inspección dentro del laboratorio de electrónica, donde la señal de red es débil o inexistente.
+Acción: el técnico detecta un hallazgo y registra la inspección con los datos disponibles (laboratorio, hallazgos, observaciones).
+Resultado esperado (capacidad futura): el registro se conserva localmente y se sincroniza automáticamente al recuperar conexión, sin que el técnico pierda la información capturada.
 
 ## 3. Requisitos funcionales
 
-Describan acciones del producto vinculadas a sus escenarios. Cada requisito lleva identificador, acción, condición de aceptación y alcance temporal.
-
 | ID | Acción del producto | Condición observable de aceptación | Ahora o futuro |
 |---|---|---|---|
-| RF-01 (ejemplo, adaptar) | Mostrar los registros sintéticos del starter | Al abrir la página se ven las tres inspecciones proporcionadas | Semana 1 |
-
-Un requisito como «gestionar inspecciones» necesita precisar qué acción y qué resultado se observarán. Agreguen los requisitos que cubran sus escenarios sin inventar que ya están implementados.
+| RF-01 | Mostrar el listado de inspecciones sintéticas del starter | Al abrir la página principal se ven las tres inspecciones (Redes, Electrónica, Software) con laboratorio, fecha, responsable, estado y hallazgos | Semana 1 |
+| RF-02 | Mostrar el estado de cada inspección | Cada tarjeta de inspección muestra una etiqueta de "Sin incidencias" o "Requiere atención" según el número de hallazgos registrado | Semana 1 |
+| RF-03 | Registrar una nueva inspección con datos capturados sin conexión | Al guardar una inspección con laboratorio, responsable y hallazgos, aparece un nuevo registro con esos mismos valores en el listado | Futuro |
+| RF-04 | Sincronizar inspecciones registradas sin conexión al recuperar internet | Al recuperar conectividad, los registros pendientes se envían automáticamente y dejan de marcarse como "pendientes de sincronizar" | Futuro |
 
 ## 4. Requisitos no funcionales
 
-Describan reproducibilidad, accesibilidad, seguridad, privacidad, rendimiento y operación offline futura. Para cada uno indiquen condición, método de comprobación y momento de validación. Declaren los supuestos de cualquier umbral propuesto.
-
-Ejemplo: «En una copia limpia, con las versiones declaradas de Node y npm, `npm ci` y `npm run verify` terminan con código 0» (reproducibilidad actual).
-
-Ejemplo de meta futura: «Con 100 registros sintéticos en el dispositivo de prueba declarado, el listado aparece en menos de 2 segundos; se medirá en cinco ejecuciones bajo la conexión definida». Esa cifra es ilustrativa, no un umbral impuesto ni un resultado ya medido.
+- **Reproducibilidad (Semana 1):** en una copia limpia del repositorio, con Node 20.19+ y npm 10+ declarados, `npm ci` y `npm run verify` terminan con código 0.
+- **Accesibilidad (futuro):** las tarjetas de inspección y sus estados (color + texto) deben ser distinguibles sin depender solo del color, verificable con una revisión de contraste y lectura con lector de pantalla antes de implementar formularios nuevos.
+- **Seguridad y privacidad (ahora y futuro):** no se almacenan datos reales de estudiantes, personal o credenciales; toda la información visible es sintética. Se verificará revisando que no existan archivos `.env`, claves ni datos reales en el repositorio.
+- **Rendimiento (meta futura, ilustrativa):** con 100 registros sintéticos en el dispositivo de prueba declarado, el listado debe cargar en menos de 2 segundos; se medirá en cinco ejecuciones bajo la conexión que el equipo defina más adelante.
+- **Offline (futuro):** un registro capturado sin conexión no debe perderse al cerrar o recargar la aplicación antes de sincronizar; se validará simulando pérdida de conexión en las herramientas de desarrollo del navegador.
 
 ## 5. Datos sintéticos y límites
 
-Indiquen qué campos ficticios usa la aplicación y qué información real excluyen. No incluyan datos reales de estudiantes ni credenciales. La identificación académica de los integrantes se registra solo en la evidencia del repositorio privado y Classroom.
+La aplicación usa exclusivamente datos ficticios: nombres de laboratorio genéricos (Redes, Electrónica, Software), responsables identificados como "Técnica A", "Técnico B", "Técnica C", fechas de ejemplo y descripciones de hallazgos inventadas.
+
+Quedan excluidos: nombres reales de personal o estudiantes, matrículas, credenciales de acceso, direcciones IP o inventario real de equipo de la UTT. La identificación académica de los integrantes del equipo se limita al repositorio privado y a Classroom, y no aparece en los datos del producto.
 
 ## 6. Criterios de aceptación de la Semana 1
 
-Relacionen cada entrega actual con una inspección o comando. Distingan la comprobación técnica del juicio sobre contenido.
+| Entregable | Cómo se verifica |
+|---|---|
+| Instalación reproducible | `npm ci` termina sin errores fatales |
+| Build exitoso | `npm run build` (incluido en `npm run verify`) termina sin errores |
+| Prueba proporcionada pasa | `npm run verify` ejecuta la prueba del starter y reporta éxito en `reports/verification.json` |
+| Requisitos funcionales y no funcionales verificables | Revisión de este documento por el equipo y el docente (no lo certifica un comando) |
+| Comparación de alternativas justificada | Revisión de `docs/decision-record.md` |
 
-Ejemplos: prueba del starter → `npm test`; build → `npm run build`; requisitos verificables → revisión del documento; comparación de alternativas → revisión de `docs/decision-record.md`. No afirmen que `npm run verify` valida la calidad del análisis.
+`npm run verify` confirma aspectos técnicos (instalación, prueba, build); no evalúa ni certifica la calidad del análisis de este documento.
