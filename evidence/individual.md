@@ -17,15 +17,26 @@
 
  Un solo archivo compartido. Repitan la sección siguiente por cada integrante; cada persona escribe y explica su propia evidencia. Se aceptan evidencias previas equivalentes. El SHA final se entrega en Classroom después del último commit, para evitar modificar el commit que se está identificando.
 
-## Integrante: escribir nombre
+## Integrante: Germán Yair Martinez Bolaños
 
-- Mi contribución concreta y enlace a archivo, commit anterior o revisión:
-- Decisión que puedo explicar y por qué:
-- Comando o prueba proporcionada que ejecuté:
-- Resultado real que observé:
-- Qué verifica esa prueba y qué no verifica:
-- Limitación, dificultad o riesgo que identifiqué:
-- Uso de IA: herramienta, propósito, partes influenciadas y validación propia (o «no utilicé IA»):
+- Mi contribución concreta y enlace a archivo, commit anterior o revisión: Revisión y validación de los documentos `docs/requirements.md` y `docs/decision-record.md` redactados inicialmente por mi compañera, confirmando que cubren adecuadamente el problema de conectividad y la justificación de la PWA.
+- Decisión que puedo explicar y por qué: En `docs/decision-record.md`, avalo la decisión de usar una PWA porque evita la fricción de instalar una app desde una tienda (lo cual es vital para los técnicos) y nos permite aprovechar el conocimiento previo en Next.js sin tener que aprender otro lenguaje o framework nativo solo para la entrega.
+- Comando o prueba proporcionada que ejecuté: Ejecuté `npm run verify` en mi entorno local.
+- Resultado real que observé: El comando completó las fases de test y build sin errores fatales, generando el reporte de éxito en `reports/verification.json`.
+- Qué verifica esa prueba y qué no verifica: Verifica que la aplicación compila exitosamente (`next build`) y que pasa las pruebas básicas del starter (`npm test`). No verifica si los requisitos descritos en el documento son correctos, ni comprueba el funcionamiento offline en un dispositivo real.
+- Limitación, dificultad o riesgo que identifiqué: Identificamos que el mayor riesgo a futuro para el soporte offline (PWA) será manejar los conflictos de sincronización cuando el técnico recupere la conexión, ya que requerirá implementar una estrategia sólida con Service Workers que Next.js no provee automáticamente.
+- Uso de IA: Utilicé un asistente de IA para revisar y perfeccionar la redacción de mis evidencias individuales y validar mis conclusiones técnicas sobre el build de Next.js, basándome en el análisis previamente aportado por mi equipo.
 
 > No necesitan inventar un error ni escribir pruebas nuevas. «Ejecuté npm test» es insuficiente como explicación: indiquen qué observa la prueba y qué comportamiento queda fuera.
 
+---------------------------------------------------------------------------------------------
+
+## Integrante: Irvin Isael Martínez Alejo
+
+- Mi contribución concreta y enlace a archivo, commit anterior o revisión: Revisión de la configuración inicial del proyecto y validación de la suite de pruebas del starter. Apoyé en la ejecución del comando de verificación final técnica.
+- Decisión que puedo explicar y por qué: Acordamos mantener el entorno de Next.js sin añadir librerías externas de UI por ahora, para priorizar la resolución del problema de conectividad antes de enfocarnos en componentes de diseño complejos.
+- Comando o prueba proporcionada que ejecuté: Ejecuté `npm test` y colaboré en la ejecución de `npm run verify`.
+- Resultado real que observé: La prueba `tests/starter.spec.mjs` pasó exitosamente y el script de verificación generó el archivo `reports/verification.json` con todos los checks en status 'pass'.
+- Qué verifica esa prueba y qué no verifica: Verifica que la estructura mínima de archivos está presente y que los componentes de Next.js compilan sin errores sintácticos. No verifica si la lógica de negocio real de las inspecciones es correcta o si los datos se guardan apropiadamente.
+- Limitación, dificultad o riesgo que identifiqué: Identificamos como limitación que, al usar datos completamente sintéticos, las pruebas actuales no reflejan la latencia real ni los posibles fallos de red que experimentarán los técnicos en el campus.
+- Uso de IA: Utilicé un asistente de IA para validar que la sintaxis de las pruebas provistas en el starter coincidía con nuestras versiones locales de Node.js y afinar el vocabulario técnico de esta evidencia.
