@@ -27,19 +27,13 @@ jobs:
           cache: npm
 
       - name: Reproducible setup
-        run: make setup
+        run: npm ci
 
-      - name: Public Expo Android build
-        run: npm run bundle:release
+      - name: Build
+        run: npm run build
 
-      - name: AC-01 — reproducibility
-        run: make verify-week-01
-
-      - name: AC-02 — public behavior
-        run: make public-test-week-01
-
-      - name: AC-03 — declared failure evidence
-        run: make evidence-week-01
+      - name: Verify (test + build + reporte)
+        run: npm run verify
 
       - name: Upload academic evidence
         if: always()
