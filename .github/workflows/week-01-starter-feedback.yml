@@ -1,28 +1,51 @@
 name: Starter Semana 1 — feedback
+
 on:
   push:
   pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  verify:
+  evaluate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          node-version: '20.19.6'
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
           cache: npm
-      - name: Instalación reproducible
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Estructura, prueba y build
-        run: npm run verify
-      - name: Guardar evidencia técnica y documentos para revisión
+
+      - name: Reproducible setup
+        run: make setup
+
+      - name: Public Expo Android build
+        run: npm run bundle:release
+
+      - name: AC-01 — reproducibility
+        run: make verify-week-01
+
+      - name: AC-02 — public behavior
+        run: make public-test-week-01
+
+      - name: AC-03 — declared failure evidence
+        run: make evidence-week-01
+
+      - name: Upload academic evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: starter-week-01-evidence
           if-no-files-found: warn
-          path: reports/verification.json
+          path: |
+            reports/
