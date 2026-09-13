@@ -55,3 +55,14 @@
 - Limitación o fallo diagnosticado: Las pruebas validan la estructura estática del manifest (campos, tipos, archivos), pero no verifican el comportamiento real de instalación de la PWA en un navegador, ni comprueban que el MIME type del servidor sea `application/manifest+json`, ni simulan la experiencia de un usuario instalando la app. Una prueba E2E con Playwright o Puppeteer sería necesaria para cubrir esos escenarios, pero queda fuera del alcance de esta semana.
 - Cambio que podría defender o modificar en vivo: La decisión de validar por filesystem en lugar de HTTP. Si el proyecto creciera y necesitáramos validar headers HTTP o MIME types, migraría a pruebas E2E que levanten el servidor de desarrollo y hagan fetch al endpoint del manifest.
 - Uso declarado de IA (herramienta, propósito, validación): Utilicé Antigravity (asistente de IA basado en Claude) para: (1) generar la estructura inicial de `manifest.spec.ts` a partir de los requisitos W3C del manifest, (2) configurar Vitest y su integración con el script de test existente, y (3) redactar el README con la documentación completa del proyecto. Revisé, adapté y ejecuté personalmente cada archivo generado, verificando que las pruebas pasaran y que la documentación reflejara fielmente el estado del proyecto.
+
+
+## Integrante: Irvin Isael Martínez Alejo
+
+- Estudiante: Irvin Isael Martínez Alejo
+- Commit SHA evaluado: 53011c280365ea807e37ec1b71238bc776db55d6
+- Mi contribución concreta: Creé src/components/app-shell.tsx con navegación y los tres estados reutilizables (carga, error, vacío); creé public/manifest.webmanifest verificando que los nombres de íconos coincidieran con public/icons/.
+- Decisión técnica que puedo explicar: Separé los estados de carga/error/vacío como componentes independientes y reutilizables (LoadingState, ErrorState, EmptyState) en vez de meterlos directo en AppShell, para poder usarlos en cualquier vista futura sin duplicar código.
+- Prueba que ejecuté y resultado: Ejecuté npm run dev y verifiqué visualmente que la barra de navegación aparece correctamente y que el manifest es JSON válido.
+- Limitación: Los tres estados (carga/error/vacío) todavía no están conectados a datos asíncronos reales; son solo la base visual para cuando exista una fuente de datos real u offline.
+- Uso de IA: [pon aquí honestamente qué usaste — ej. Claude para generar la estructura inicial del componente y confirmar buenas prácticas de accesibilidad en los estados].
