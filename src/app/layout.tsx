@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Inspecciones de laboratorio",
   description: "Proyecto base de Aplicaciones Web Progresivas",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icons/icon-192x192.png",
     apple: "/icons/icon-192x192.png"
