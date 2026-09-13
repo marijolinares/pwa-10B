@@ -1,40 +1,164 @@
-# PWA de inspecciones de laboratorio — proyecto del equipo
+# PWA de Inspecciones de Laboratorio
 
-Comiencen por `START_HERE.md` y lean `ACTIVIDAD-01.md`. Este es un proyecto acumulativo: un repositorio privado por equipo durante el curso. La Semana 1 consiste en arrancar, documentar y explicar la verificación; no en implementar toda la PWA.
+Aplicación web progresiva para el registro de inspecciones y mantenimiento de laboratorios de la Universidad Tecnológica de Tehuacán. Diseñada para funcionar con conectividad intermitente.
 
-## Entorno
+**Grupo:** 10B · **Equipo:** 8  
+**Repositorio:** [marijolinares/pwa-10B](https://github.com/marijolinares/pwa-10B)
 
-Node.js 20.19 o posterior compatible, npm 10 o posterior, Git y cuenta de GitHub. No se requiere Make. Registren aquí las versiones usadas (`node --version`, `npm --version`) y cualquier dificultad de entorno que encuentren.
+---
 
-## Ejecución
+## Entorno requerido
+
+| Herramienta | Versión mínima |
+|---|---|
+| Node.js | 20.19 o posterior |
+| npm | 10 o posterior |
+| Git | 2.x |
+
+Registren las versiones locales con:
 
 ```bash
+node --version
+npm --version
+git --version
+```
+
+---
+
+## Setup (instalación limpia)
+
+```bash
+git clone https://github.com/marijolinares/pwa-10B.git
+cd pwa-10B
 npm ci
+```
+
+`npm ci` instala las dependencias exactas de `package-lock.json`, garantizando reproducibilidad entre máquinas. No usar `npm install` para la verificación final.
+
+---
+
+## Ejecución local
+
+```bash
 npm run dev
 ```
 
-Abran `http://localhost:3000` y comprueben las tres inspecciones sintéticas. Detengan el servidor con Ctrl+C.
+Abrir [http://localhost:3000](http://localhost:3000) y comprobar las inspecciones sintéticas. Detener el servidor con `Ctrl+C`.
+
+---
 
 ## Verificación
+
+### Pruebas automatizadas
+
+```bash
+npm test -- --run
+```
+
+Ejecuta dos suites:
+1. **`tests/starter.spec.mjs`** — prueba del starter (semana 1): verifica que `page.tsx` contiene las referencias esperadas.
+2. **`tests/manifest.spec.ts`** — prueba del manifest (semana 2): valida estructura, campos obligatorios W3C, íconos PWA e integración con `layout.tsx`.
+
+### Verificación completa
 
 ```bash
 npm run verify
 ```
 
-Ejecuta comprobación de archivos, prueba proporcionada y build; genera `reports/verification.json`. El reporte contiene resultados técnicos y documentos para revisión, no una calificación automática. `make verify` es equivalente. `bash public-tests/check.sh` es un check opcional de estructura.
+Equivalente a `make verify`. Ejecuta comprobación de archivos, pruebas y build; genera `reports/verification.json`.
 
-GitHub Actions ejecuta la misma verificación y permite descargar el artefacto `starter-week-01-evidence`. El reporte local se excluye de Git: adjúntenlo en Classroom o descarguen el del SHA entregado desde Actions.
+### Check de estructura (opcional)
 
-## Trabajo y entrega en equipo
+```bash
+bash public-tests/check.sh
+```
 
-Inviten a los integrantes y al docente al mismo repositorio privado. Cada persona registra su evidencia en una sección de `evidence/individual.md`. Todos entregan en Classroom el mismo SHA final y enlaces, identificando su sección. El formato exacto está en `ACTIVIDAD-01.md`; no se requiere un pull request adicional ni una copia por alumno.
+Verifica solo la estructura de archivos, no el contenido.
 
-## Estructura y límites
+---
 
-- `src/app/`: pantalla Next.js.
-- `src/lib/data/`: inspecciones sintéticas.
-- `docs/`: requisitos y decisión del equipo.
-- `evidence/`: evidencia propia de cada integrante.
-- `tests/`: prueba inicial proporcionada; no es una suite completa de comportamiento.
+## Estructura del proyecto
 
-Registren aquí sus supuestos y limitaciones de ejecución. El starter todavía no implementa instalación PWA, offline ni sincronización. No incluyan datos personales reales en el producto, archivos `.env` ni credenciales. La identificación de integrantes se conserva en el repositorio privado y Classroom.
+```
+pwa-10B/
+├── public/
+│   ├── manifest.webmanifest   ← Manifest de la PWA (semana 2)
+│   └── icons/
+│       ├── icon-192x192.png   ← Ícono para instalación
+│       └── icon-512x512.png   ← Ícono para splash screen
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx         ← Layout raíz con metadata y manifest
+│   │   ├── page.tsx           ← Página principal con inspecciones
+│   │   └── globals.css        ← Estilos globales
+│   ├── components/
+│   │   └── app-shell.tsx      ← Shell: navegación + estados (carga, error, vacío)
+│   └── lib/data/
+│       └── inspections.ts     ← Datos sintéticos de inspecciones
+├── tests/
+│   ├── starter.spec.mjs       ← Prueba del starter (semana 1)
+│   └── manifest.spec.ts       ← Prueba del manifest (semana 2)
+├── evidence/
+│   └── individual.md          ← Evidencia individual por integrante
+├── docs/
+│   ├── requirements.md        ← Requisitos del producto
+│   └── decision-record.md     ← Justificación de la estrategia PWA
+├── scripts/
+│   └── verify.mjs             ← Script de verificación
+├── vitest.config.mts            ← Configuración de Vitest
+├── package.json
+└── README.md                  ← Este archivo
+```
+
+---
+
+## Decisiones técnicas (Semana 2)
+
+### Vitest como framework de pruebas
+
+Se eligió [Vitest](https://vitest.dev/) para `tests/manifest.spec.ts` porque:
+
+- **Soporte TypeScript nativo**: el archivo es `.spec.ts` — `node:assert` no ejecuta TypeScript sin transpilación adicional.
+- **Compatibilidad con CI**: el check de la semana 2 ejecuta `npm test -- --run`, patrón estándar de Vitest.
+- **Velocidad**: Vitest usa Vite como motor, con tiempos de arranque mínimos.
+- **Coexistencia**: el script `test` ejecuta primero el `starter.spec.mjs` existente (Node puro) y luego Vitest.
+
+### Validación por filesystem vs HTTP
+
+Las pruebas del manifest leen archivos directamente del disco (`readFileSync`) en lugar de levantar un servidor HTTP. Esto garantiza:
+
+- **Determinismo**: no depende del estado del servidor ni del puerto disponible.
+- **Velocidad**: sin overhead de HTTP.
+- **Reproducibilidad**: funciona igual en CI y en local.
+
+### Manifest `.webmanifest` vs `.json`
+
+El estándar W3C recomienda la extensión `.webmanifest` con MIME type `application/manifest+json`. Ambas extensiones funcionan, pero `.webmanifest` es la convención moderna y es lo que los checks de la actividad verifican.
+
+---
+
+## Datos y límites
+
+- Todos los datos son **sintéticos** (3 inspecciones de demostración).
+- **Sin service worker** ni funcionalidad offline implementada aún.
+- **Sin autenticación** ni datos personales reales.
+- Las pruebas del manifest validan la estructura estática del archivo, **no** el comportamiento real de instalación PWA en un navegador.
+- Las vulnerabilidades reportadas por `npm audit` provienen de dependencias del starter y no se corrigen para no alterar versiones requeridas por el proyecto.
+
+---
+
+## Evidencia
+
+Ver `evidence/individual.md` para la evidencia de cada integrante, incluyendo commit SHA, decisión técnica, prueba ejecutada, limitaciones y uso de IA.
+
+---
+
+## CI / GitHub Actions
+
+El workflow de CI ejecuta:
+
+1. `npm ci` — instalación reproducible
+2. `npm run build` — compilación de Next.js
+3. `npm run verify` — verificación completa (archivos + pruebas + build)
+
+Los artefactos de evidencia se descargan desde la pestaña Actions del repositorio.
