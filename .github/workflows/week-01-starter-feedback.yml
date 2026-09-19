@@ -1,28 +1,45 @@
 name: Starter Semana 1 — feedback
+
 on:
   push:
   pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  verify:
+  evaluate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          node-version: '20.19.6'
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
           cache: npm
-      - name: Instalación reproducible
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Estructura, prueba y build
+
+      - name: Reproducible setup
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify (test + build + reporte)
         run: npm run verify
-      - name: Guardar evidencia técnica y documentos para revisión
+
+      - name: Upload academic evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: starter-week-01-evidence
           if-no-files-found: warn
-          path: reports/verification.json
+          path: |
+            reports/
