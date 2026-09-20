@@ -66,3 +66,15 @@
 - Prueba que ejecuté y resultado: Ejecuté npm run dev y verifiqué visualmente que la barra de navegación aparece correctamente y que el manifest es JSON válido.
 - Limitación: Los tres estados (carga/error/vacío) todavía no están conectados a datos asíncronos reales; son solo la base visual para cuando exista una fuente de datos real u offline.
 - Uso de IA: [pon aquí honestamente qué usaste — ej. Claude para generar la estructura inicial del componente y confirmar buenas prácticas de accesibilidad en los estados].
+
+
+## Integrante: Irvin Isael Martínez Alejo
+
+- Estudiante: Irvin Isael Martínez Alejo
+- Commit SHA evaluado: 183ead3
+- Mi contribución concreta y enlace a archivo, commit anterior o revisión: Creé `public/sw.js` con los eventos `install`, `activate` y `fetch`: precaché del app shell (`/`, `manifest.webmanifest`, íconos 192x192 y 512x512), limpieza de cachés viejos al activar mediante comparación de nombres de caché versionados (`shell-v1`, `runtime-v1`), y estrategia de caché diferenciada por tipo de recurso.
+- Decisión técnica que puedo explicar: Usé network-first para la navegación HTML (para priorizar contenido actualizado cuando hay conexión, con fallback a caché o a `/` si falla la red), y cache-first para los assets de `/_next/static/` e `/icons/`, porque Next.js les agrega un hash al nombre de archivo cuando cambian, lo que los hace efectivamente inmutables — cachear-primero es seguro porque nunca se sirve una versión "vieja" bajo el mismo nombre de archivo. Versioné los nombres de caché para poder limpiarlos en `activate` cuando suba una versión nueva.
+- Prueba que ejecuté y resultado: Ejecuté `npm run build` seguido de `npm run start` y verifiqué en DevTools → Application → Service Workers que el SW se instala correctamente y que el caché `shell-v1` contiene los 4 recursos esperados. Con la pestaña Network en modo "Offline", recargué la página y el shell (HTML, manifest, íconos) siguió cargando correctamente.
+- Limitación o fallo diagnosticado: El fallback offline para HTML depende de que `/` ya haya sido visitada y cacheada antes de perder conexión — no existe todavía una página offline dedicada independiente del shell. Además, los assets de `/_next/static/` no se precachean explícitamente porque sus nombres con hash no se conocen antes del build; solo se cachean en runtime la primera vez que se solicitan, por lo que la primera visita offline después de un build nuevo podría no tener todos los estáticos disponibles.
+- Cambio que podría defender o modificar en vivo: Si el proyecto creciera, agregaría una página offline dedicada (`/offline.html`) precacheada desde el `install`, para no depender de que `/` ya esté en caché como único fallback.
+- Uso declarado de IA (herramienta, propósito, validación): Usé Claude para generar una estructura inicial de `sw.js` con los tres eventos del ciclo de vida y para entender la diferencia entre network-first y cache-first aplicada a mi caso. Adapté las rutas concretas a los assets reales del proyecto (manifest.webmanifest, íconos, `/_next/static`) y ejecuté yo mismo las pruebas descritas arriba antes de aceptar el resultado.
