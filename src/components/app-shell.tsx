@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 
 /**
  * AppShell — estructura visual persistente de la PWA:
@@ -15,6 +15,13 @@ type AppShellProps = {
 };
 
 export function AppShell({ children }: AppShellProps) {
+  // Registrar el service worker una vez que el componente se monta (solo cliente).
+  useEffect(() => {
+    import("../lib/pwa/register-service-worker").then(({ registerSW }) => {
+      registerSW();
+    });
+  }, []);
+
   return (
     <div className="app-shell">
       <header className="app-shell-nav" role="banner">
