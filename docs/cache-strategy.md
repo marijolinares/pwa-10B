@@ -19,8 +19,7 @@ Recursos que se descargan durante la instalación del SW y se almacenan antes de
 
 | Recurso | Justificación |
 |---|---|
-| `/` (HTML de la página principal) | Permite cargar la app sin red |
-| `/offline.html` | Página fallback cuando no hay red ni caché |
+| `/` (HTML de la página principal) | Permite cargar la app sin red; también sirve como fallback offline para cualquier navegación |
 | `/manifest.webmanifest` | Necesario para la instalación PWA |
 | `/icons/icon-192x192.png` | Ícono visible durante la instalación |
 | `/icons/icon-512x512.png` | Ícono para splash screen |
@@ -31,9 +30,9 @@ Recursos que se cachean la primera vez que el usuario los solicita:
 
 | Patrón | Estrategia | Justificación |
 |---|---|---|
-| `/_next/static/*` (JS, CSS bundled) | **Cache First** | Son inmutables (el hash en el nombre garantiza unicidad); no tiene sentido ir a la red si ya están en caché |
-| Navegación HTML (mismo origen) | **Network First** | Siempre intentar obtener la versión más reciente; si la red falla, servir desde caché |
-| Íconos y manifest | **Cache First** | Cambian raramente; priorizar velocidad |
+| `/_next/static/*` (JS, CSS bundled) | **Cache First** → `runtime-v1` | Son inmutables (el hash en el nombre garantiza unicidad); no tiene sentido ir a la red si ya están en caché |
+| `/icons/*` | **Cache First** → `runtime-v1` | Cambian raramente; priorizar velocidad |
+| Navegación HTML (mismo origen) | **Network First** → `shell-v1` | Siempre intentar obtener la versión más reciente; si la red falla, servir desde caché; si tampoco hay caché, devolver `/` (la página principal precacheada) |
 
 ### Qué NO se cachea
 
@@ -61,9 +60,9 @@ Petición → ¿Está en caché? → Sí → Devolver desde caché
 ### Network First (navegación HTML)
 
 ```
-Petición → Intentar red → ¿Éxito? → Guardar en caché → Devolver
+Petición → Intentar red → ¿Éxito? → Guardar en shell-v1 → Devolver
                          → ¿Fallo? → ¿Está en caché? → Sí → Devolver desde caché
-                                                       → No → Devolver /offline.html
+                                                       → No → Devolver caches.match("/")
 ```
 
 **Ventaja:** El usuario siempre obtiene la versión más reciente si hay red.
@@ -75,20 +74,21 @@ Petición → Intentar red → ¿Éxito? → Guardar en caché → Devolver
 
 ### Install
 
-1. Se abre el caché versionado (`inspecciones-precache-v1`).
-2. Se agregan todos los recursos del precache.
-3. Se llama `self.skipWaiting()` para no quedar en estado `waiting`.
+1. Se abre el caché versionado (`shell-v1`).
+2. Se agregan todos los recursos del precache con `cache.addAll()`.
+3. **No** se llama `self.skipWaiting()` — el SW queda en estado `waiting` hasta que el usuario recargue o cierre todas las pestañas. Esto se decidió para evitar inconsistencias entre el HTML servido y los assets cacheados (ver sección Trade-offs).
 
 ### Activate
 
-1. Se limpian cachés con nombres de versiones anteriores.
+1. Se listan todos los cachés existentes y se eliminan los que no sean `shell-v1` ni `runtime-v1`.
 2. Se llama `self.clients.claim()` para tomar control inmediato de las pestañas abiertas.
 
 ### Fetch
 
-1. Se intercepta cada petición.
+1. Solo se interceptan peticiones `GET` (las demás se dejan pasar al navegador).
 2. Se aplica la estrategia según el tipo de recurso (ver tabla arriba).
-3. Si todo falla (red + caché), se devuelve `/offline.html` para navegación.
+3. Si todo falla para una navegación (red + caché específico), se devuelve `caches.match("/")` — la página principal precacheada como fallback genérico.
+4. Para el resto de peticiones que no sean navegación ni assets estáticos, se intenta red y, si falla, se busca en caché sin cachear la respuesta.
 
 ---
 
@@ -96,12 +96,12 @@ Petición → Intentar red → ¿Éxito? → Guardar en caché → Devolver
 
 ### Versionamiento
 
-El SW usa una constante `CACHE_VERSION` (por ejemplo, `'v1'`). Para desplegar una actualización:
+El SW usa una constante `CACHE_VERSION` (actualmente `'v1'`), que se concatena a los nombres de caché: `shell-${CACHE_VERSION}` y `runtime-${CACHE_VERSION}`. Para desplegar una actualización:
 
-1. Se incrementa la versión (`'v2'`).
+1. Se incrementa la versión a `'v2'` → los cachés pasan a llamarse `shell-v2` y `runtime-v2`.
 2. El navegador detecta que `sw.js` cambió (byte comparison).
-3. El nuevo SW se instala en paralelo (precachea con el nuevo nombre de caché).
-4. Al activarse, limpia los cachés del nombre de versión anterior.
+3. El nuevo SW se instala en paralelo (precachea con los nuevos nombres de caché).
+4. Al activarse, el listener de `activate` elimina cualquier caché que no esté en la lista actual (`shell-v2`, `runtime-v2`), limpiando los de la versión anterior.
 
 ### Protección contra versiones corruptas
 
@@ -132,10 +132,10 @@ El módulo `register-service-worker.ts` escucha `updatefound` y notifica por con
 
 ### skipWaiting vs esperar
 
-- **skipWaiting (elegido):** La actualización se activa inmediatamente. Riesgo: si el HTML viejo espera JS del caché nuevo, puede haber inconsistencia.
-- **Esperar:** Más seguro para apps grandes, pero el usuario puede quedarse con una versión vieja indefinidamente si no cierra todas las pestañas.
+- **skipWaiting:** La actualización se activa inmediatamente. Riesgo: si el HTML viejo espera JS del caché nuevo, puede haber inconsistencia.
+- **Esperar (elegido):** Más seguro; el SW nuevo se activa cuando el usuario recarga o cierra todas las pestañas.
 
-**Decisión:** En esta PWA, los recursos estáticos de Next.js tienen hash en el nombre, así que un HTML viejo no pide JS con el mismo nombre que el nuevo. El riesgo de inconsistencia es bajo.
+**Decisión:** Se optó por **no** llamar `self.skipWaiting()` para evitar que un HTML viejo quede servido con assets del caché nuevo. El módulo `register-service-worker.ts` ya notifica por consola cuando hay una actualización disponible, y el usuario puede recargar cuando le convenga. Si en el futuro se decide forzar la activación inmediata, se puede agregar `self.skipWaiting()` en el listener de `install` y coordinar con el registro del cliente.
 
 ---
 
