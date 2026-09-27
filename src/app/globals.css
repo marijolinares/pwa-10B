@@ -107,3 +107,114 @@ dd { font-size: .82rem; font-weight: 700; margin: 0; text-align: right; }
   padding: 8px 16px;
 }
 @keyframes shell-spin { to { transform: rotate(360deg); } }
+
+/* ── Semana 4: loading-state.tsx ──────────────────────────────── */
+.loading-state {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 48px 20px;
+  text-align: center;
+}
+.loading-state p { color: var(--muted); margin: 0; }
+.loading-state__icon { font-size: 2rem; }
+.loading-state__label { font-size: .95rem; }
+.loading-state__retry {
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 10px 20px;
+  transition: opacity .2s;
+}
+.loading-state__retry:hover { opacity: .85; }
+.loading-state__back-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.loading-state__back-link:hover { text-decoration: underline; }
+.sr-only {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Skeleton cards */
+.skeleton-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+}
+.skeleton-line {
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+  background: linear-gradient(90deg, var(--line) 25%, var(--background) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  border-radius: 6px;
+  height: 14px;
+  margin-bottom: 12px;
+}
+.skeleton-line--short { width: 40%; }
+.skeleton-line--title { height: 20px; width: 70%; }
+.skeleton-line--body { width: 100%; }
+@keyframes skeleton-pulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Semana 4: Detalle SSR ───────────────────────────────────── */
+.detail-back { margin-bottom: 16px; }
+.detail-back-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.detail-back-link:hover { text-decoration: underline; }
+.detail-header {
+  background: linear-gradient(135deg, #172b62, #3156d3);
+  border-radius: 18px;
+  color: #fff;
+  padding: 32px;
+}
+.detail-header h1 { font-size: clamp(1.5rem, 4vw, 2.4rem); margin: 12px 0 6px; }
+.detail-date { color: #c9d3ff; margin: 0; }
+.detail-body { padding: 28px 0; }
+.detail-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.detail-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(36,55,95,.06);
+  padding: 22px;
+}
+.detail-card h3 { margin-top: 0; }
+.detail-dl { margin: 0; padding: 0; border: none; }
+.detail-dl div {
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+.detail-dl div:last-child { border-bottom: none; }
+.detail-footer { padding: 20px 0 40px; }
+
+/* ── Semana 4: Listado CSR ───────────────────────────────────── */
+.list-header { margin-bottom: 24px; }
+.list-header h1 { margin-bottom: 8px; }
+.inspection-card--link {
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: box-shadow .2s, transform .15s;
+  display: block;
+}
+.inspection-card--link:hover {
+  box-shadow: 0 8px 24px rgba(36,55,95,.12);
+  transform: translateY(-2px);
+}
+.card-action { display: block; margin-top: 12px; font-size: .85rem; }
