@@ -78,6 +78,32 @@ Verifica solo la estructura de archivos, no el contenido.
 ---
 ---
 
+## Renderizado CSR/SSR con estados verificables (Semana 4)
+
+### Qué implementa
+
+- `src/app/inspecciones/page.tsx` — Listado de inspecciones (CSR). Utiliza fetch simulado en el cliente para mostrar el ciclo de vida del componente, incluyendo un estado de carga (skeleton) inicial.
+- `src/app/inspecciones/[id]/page.tsx` — Detalle de inspección (SSR). Renderiza el contenido directamente desde el servidor usando los parámetros de ruta para entregar HTML listo, optimizando SEO y TTFB.
+- `src/components/loading-state.tsx` — Estados de carga reutilizables que integran tanto el listado (variantes spinner y skeleton) como los estados de error y "no encontrado" del detalle.
+- `docs/rendering-decision.md` — Documenta detalladamente los trade-offs, ventajas y desventajas de haber elegido CSR para el listado e SSR para el detalle.
+
+### Ejecución y validación
+
+1. Ejecutar el proyecto: `npm run dev`
+2. Ir a `http://localhost:3000/inspecciones`. Se visualizará un estado de carga (skeleton) antes de mostrar los datos.
+3. Al dar clic en alguna inspección, se navegará a la ruta de detalle (por ejemplo, `/inspecciones/inspection-001`), la cual se renderiza desde el servidor de forma inmediata.
+
+### Pruebas automatizadas de la semana
+
+```bash
+npm run test -- --run
+```
+Adicionalmente a las pruebas anteriores, se agregó:
+- **`tests/rendering.spec.ts`** — Valida los componentes CSR y SSR, comprobando que el listado inicie en estado de carga (skeleton), que el detalle de SSR renderice el contenido correctamente con los `params`, y maneje correctamente identificadores inexistentes (estado not-found). 
+
+---
+---
+
 ## Service Worker y funcionamiento offline (Semana 3)
 
 ### Qué implementa

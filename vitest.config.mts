@@ -6,4 +6,7 @@ export default defineConfig({
     globals: false,
     environment: 'happy-dom',
   },
+  esbuild: {
+    jsxInject: "import React from 'react'",
+  },
 });
