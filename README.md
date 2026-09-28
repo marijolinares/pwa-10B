@@ -33,7 +33,7 @@ cd pwa-10B
 npm ci
 ```
 
-`npm ci` instala las dependencias exactas de `package-lock.json`, garantizando reproducibilidad entre máquinas. No usar `npm install` para la verificación final.
+`npm ci` instala las dependencias exactas de `package-lock.json`, garantizando reproducibilidad entre máquinas. No usar `npm install` para la verificación final. Las dependencias de pruebas (Vitest, happy-dom y Testing Library) también se instalan con `npm ci`.
 
 ---
 
@@ -52,12 +52,18 @@ Abrir [http://localhost:3000](http://localhost:3000) y comprobar las inspeccione
 ### Pruebas automatizadas
 
 ```bash
-npm test -- --run
+npm run test -- --run
 ```
 
-Ejecuta dos suites:
-1. **`tests/starter.spec.mjs`** — prueba del starter (semana 1): verifica que `page.tsx` contiene las referencias esperadas.
-2. **`tests/manifest.spec.ts`** — prueba del manifest (semana 2): valida estructura, campos obligatorios W3C, íconos PWA e integración con `layout.tsx`.
+Ejecuta `tests/starter.spec.mjs` (Node puro) y después Vitest (4 archivos, 54 pruebas):
+
+1. **`tests/starter.spec.mjs`** — prueba del starter (Semana 1): verifica que `page.tsx` contiene las referencias esperadas.
+2. **`tests/manifest.spec.ts`** — prueba del manifest (Semana 2, 12 pruebas): valida estructura, campos obligatorios W3C, íconos PWA e integración con `layout.tsx`.
+3. **`tests/service-worker.spec.ts`** — service worker (Semana 3, 17 pruebas): valida la estructura de `sw.js`: versionamiento de caché, precaché del shell, limpieza de cachés viejos y las tres estrategias de `fetch`.
+4. **`tests/offline.spec.ts`** — registro offline (Semana 3, 9 pruebas): valida `register-service-worker.ts` simulando (mock) el navegador: sin soporte, registro exitoso, detección de actualización y fallo de registro.
+5. **`tests/rendering.spec.ts`** — rutas CSR y SSR (Semana 4, 16 pruebas): el listado (5), el detalle (4), la estructura CSR/SSR (3), el comportamiento del listado (2) y los estados compartidos (2). Comprueba que el listado inicie en estado de carga, que el detalle renderice el contenido con los `params`, maneje identificadores inexistentes (not-found) y tenga estados de carga y error.
+
+**Limitación importante:** estas pruebas corren en Node.js con [`happy-dom`](https://github.com/capricorn86/happy-dom) como entorno simulado (`vitest.config.mts`), no en un navegador real. Validan la *estructura* del código (que existan los listeners correctos, que la lista de precaché sea la esperada) y el *comportamiento del módulo de registro* ante distintos escenarios simulados — no ejecutan un Service Worker real interceptando peticiones de red. Una cobertura E2E real (por ejemplo con Playwright) sería necesaria para probar el comportamiento en un navegador de verdad.
 
 ### Verificación completa
 
@@ -76,76 +82,16 @@ bash public-tests/check.sh
 Verifica solo la estructura de archivos, no el contenido.
 
 ---
----
-
-## Renderizado CSR/SSR con estados verificables (Semana 4)
-
-### Qué implementa
-
-- `src/app/inspecciones/page.tsx` — Listado de inspecciones (CSR). Utiliza fetch simulado en el cliente para mostrar el ciclo de vida del componente, incluyendo un estado de carga (skeleton) inicial.
-- `src/app/inspecciones/[id]/page.tsx` — Detalle de inspección (SSR). Renderiza el contenido directamente desde el servidor usando los parámetros de ruta para entregar HTML listo, optimizando SEO y TTFB.
-- `src/components/loading-state.tsx` — Estados de carga reutilizables que integran tanto el listado (variantes spinner y skeleton) como los estados de error y "no encontrado" del detalle.
-- `docs/rendering-decision.md` — Documenta detalladamente los trade-offs, ventajas y desventajas de haber elegido CSR para el listado e SSR para el detalle.
-
-### Ejecución y validación
-
-1. Ejecutar el proyecto: `npm run dev`
-2. Ir a `http://localhost:3000/inspecciones`. Se visualizará un estado de carga (skeleton) antes de mostrar los datos.
-3. Al dar clic en alguna inspección, se navegará a la ruta de detalle (por ejemplo, `/inspecciones/inspection-001`), la cual se renderiza desde el servidor de forma inmediata.
-
-### Pruebas automatizadas de la semana
-
-```bash
-npm run test -- --run
-```
-Adicionalmente a las pruebas anteriores, se agregó:
-- **`tests/rendering.spec.ts`** — Valida los componentes CSR y SSR, comprobando que el listado inicie en estado de carga (skeleton), que el detalle de SSR renderice el contenido correctamente con los `params`, y maneje correctamente identificadores inexistentes (estado not-found). 
-
----
----
-
-## Service Worker y funcionamiento offline (Semana 3)
-
-### Qué implementa
-
-- `public/sw.js` — ciclo de vida completo: `install` (precachea el shell: `/`, manifest, íconos), `activate` (limpia cachés de versiones anteriores), `fetch` (network-first para navegación HTML, cache-first para assets estáticos de `/_next/static/` e `/icons/`, network-first simple para el resto).
-- `src/lib/pwa/register-service-worker.ts` — registra el service worker desde el cliente, detecta actualizaciones (`updatefound`) y expone `registerSW()` / `unregisterSW()`.
-- `docs/cache-strategy.md` — documenta el razonamiento detrás de cada estrategia de caché, el ciclo de vida y las limitaciones conocidas.
-
-### Probar el comportamiento offline manualmente
-
-1. `npm run build && npm run start` (el service worker requiere HTTPS o producción local; no funciona de forma confiable con `npm run dev`).
-2. Abrir `http://localhost:3000` en Chrome/Edge.
-3. DevTools → **Application** → **Service Workers**: confirmar que aparece registrado y activo.
-4. DevTools → **Network** → marcar **Offline**.
-5. Recargar la página: el shell (HTML, manifest, íconos) debe seguir cargando desde caché.
-
-### Pruebas automatizadas
-
-```bash
-npm run test -- --run
-```
-
-Ejecuta tres suites:
-1. **`tests/starter.spec.mjs`** — prueba del starter (Semana 1).
-2. **`tests/manifest.spec.ts`** — validación del manifest (Semana 2).
-3. **`tests/service-worker.spec.ts`** — valida la estructura de `sw.js`: versionamiento de caché, precaché del shell, limpieza de cachés viejos, y las tres estrategias de `fetch`.
-4. **`tests/offline.spec.ts`** — valida `register-service-worker.ts` simulando (mock) el navegador: sin soporte, registro exitoso, detección de actualización, y fallo de registro.
-
-**Limitación importante:** estas pruebas corren en Node.js con [`happy-dom`](https://github.com/capricorn86/happy-dom) como entorno simulado (`vitest.config.mts`), no en un navegador real. Validan la *estructura* del código (que existan los listeners correctos, que la lista de precaché sea la esperada) y el *comportamiento del módulo de registro* ante distintos escenarios simulados — no ejecutan un Service Worker real interceptando peticiones de red. Una cobertura E2E real (por ejemplo con Playwright) sería necesaria para probar el comportamiento en un navegador de verdad.
-
-### Dependencias nuevas
-
-Esta semana se agregó `happy-dom` como `devDependency` para que Vitest simule un entorno con `navigator`/`window` disponibles (necesario para los mocks de `offline.spec.ts`). Si acabas de hacer `git pull` y ves un error de "vitest no se reconoce" o pruebas que no cargan, corre `npm ci` para instalar las dependencias actualizadas.
-
----
 
 ## Estructura del proyecto
 
 ```
 pwa-10B/
+├── .github/
+│   └── workflows/             ← Workflows de CI
 ├── public/
 │   ├── manifest.webmanifest   ← Manifest de la PWA (semana 2)
+│   ├── sw.js                  ← Service worker (semana 3)
 │   └── icons/
 │       ├── icon-192x192.png   ← Ícono para instalación
 │       └── icon-512x512.png   ← Ícono para splash screen
@@ -153,22 +99,40 @@ pwa-10B/
 │   ├── app/
 │   │   ├── layout.tsx         ← Layout raíz con metadata y manifest
 │   │   ├── page.tsx           ← Página principal con inspecciones
-│   │   └── globals.css        ← Estilos globales
+│   │   ├── globals.css        ← Estilos globales
+│   │   ├── api/
+│   │   │   └── inspecciones/
+│   │   │       └── route.ts   ← Endpoint JSON del listado (semana 4)
+│   │   └── inspecciones/
+│   │       ├── page.tsx       ← Listado, CSR (semana 4)
+│   │       └── [id]/
+│   │           ├── page.tsx   ← Detalle, SSR (semana 4)
+│   │           ├── loading.tsx ← Estado de carga del detalle
+│   │           └── error.tsx  ← Estado de error del detalle
 │   ├── components/
-│   │   └── app-shell.tsx      ← Shell: navegación + estados (carga, error, vacío)
-│   └── lib/data/
-│       └── inspections.ts     ← Datos sintéticos de inspecciones
+│   │   ├── app-shell.tsx      ← Shell: navegación + estados (carga, error, vacío)
+│   │   └── loading-state.tsx  ← Estados compartidos por las rutas (semana 4)
+│   └── lib/
+│       ├── data/
+│       │   └── inspections.ts ← Datos sintéticos de inspecciones
+│       └── pwa/
+│           └── register-service-worker.ts ← Registro del service worker (semana 3)
 ├── tests/
 │   ├── starter.spec.mjs       ← Prueba del starter (semana 1)
-│   └── manifest.spec.ts       ← Prueba del manifest (semana 2)
+│   ├── manifest.spec.ts       ← Prueba del manifest (semana 2)
+│   ├── service-worker.spec.ts ← Prueba del service worker (semana 3)
+│   ├── offline.spec.ts        ← Prueba del registro offline (semana 3)
+│   └── rendering.spec.ts      ← Prueba de rutas CSR/SSR (semana 4)
 ├── evidence/
 │   └── individual.md          ← Evidencia individual por integrante
 ├── docs/
 │   ├── requirements.md        ← Requisitos del producto
-│   └── decision-record.md     ← Justificación de la estrategia PWA
+│   ├── decision-record.md     ← Justificación de la estrategia PWA
+│   ├── cache-strategy.md      ← Estrategia de caché (semana 3)
+│   └── rendering-decision.md  ← Decisión CSR/SSR (semana 4)
 ├── scripts/
 │   └── verify.mjs             ← Script de verificación
-├── vitest.config.mts            ← Configuración de Vitest
+├── vitest.config.mts          ← Configuración de Vitest
 ├── package.json
 └── README.md                  ← Este archivo
 ```
@@ -200,12 +164,71 @@ El estándar W3C recomienda la extensión `.webmanifest` con MIME type `applicat
 
 ---
 
+## Service Worker y funcionamiento offline (Semana 3)
+
+### Qué implementa
+
+- `public/sw.js` — ciclo de vida completo: `install` (precachea el shell: `/`, manifest, íconos), `activate` (limpia cachés de versiones anteriores), `fetch` (network-first para navegación HTML, cache-first para assets estáticos de `/_next/static/` e `/icons/`, network-first simple para el resto).
+- `src/lib/pwa/register-service-worker.ts` — registra el service worker desde el cliente, detecta actualizaciones (`updatefound`) y expone `registerSW()` / `unregisterSW()`.
+- `docs/cache-strategy.md` — documenta el razonamiento detrás de cada estrategia de caché, el ciclo de vida y las limitaciones conocidas.
+
+### Probar el comportamiento offline manualmente
+
+1. `npm run build && npm run start` (el service worker requiere HTTPS o producción local; no funciona de forma confiable con `npm run dev`).
+2. Abrir `http://localhost:3000` en Chrome/Edge.
+3. DevTools → **Application** → **Service Workers**: confirmar que aparece registrado y activo.
+4. DevTools → **Network** → marcar **Offline**.
+5. Recargar la página: el shell (HTML, manifest, íconos) debe seguir cargando desde caché.
+
+### Dependencias nuevas
+
+Esta semana se agregó `happy-dom` como `devDependency` para que Vitest simule un entorno con `navigator`/`window` disponibles (necesario para los mocks de `offline.spec.ts`). Si acabas de hacer `git pull` y ves un error de "vitest no se reconoce" o pruebas que no cargan, corre `npm ci` para instalar las dependencias actualizadas.
+
+---
+
+## Renderizado CSR/SSR con estados verificables (Semana 4)
+
+### Qué implementa
+
+| Ruta | Estrategia | Archivos |
+|---|---|---|
+| `/inspecciones` | **CSR**: Client Component que pide los datos en el navegador a `/api/inspecciones` y muestra un estado de carga antes de los datos | `src/app/inspecciones/page.tsx`, `src/app/api/inspecciones/route.ts` |
+| `/inspecciones/[id]` | **SSR**: Server Component con `dynamic = "force-dynamic"` (se renderiza en cada petición) a partir de los parámetros de ruta; entrega HTML listo, optimizando SEO y TTFB | `src/app/inspecciones/[id]/page.tsx`, `loading.tsx`, `error.tsx` |
+
+Los estados de carga, error, vacío y "no encontrado" son reutilizables y viven en `src/components/loading-state.tsx`. La justificación completa, la comparación (carga, accesibilidad y complejidad) y los trade-offs de haber elegido CSR para el listado y SSR para el detalle están en `docs/rendering-decision.md`.
+
+### Cómo probarlo
+
+1. Con el servidor de desarrollo levantado (ver *Ejecución local*), ir a `http://localhost:3000/inspecciones`. Se muestra un estado de carga antes de los datos (dura una fracción de segundo; abajo se explica cómo verlo).
+2. Al dar clic en alguna inspección se navega a la ruta de detalle (por ejemplo, `/inspecciones/inspection-001`), que se renderiza desde el servidor de forma inmediata.
+
+### Cómo ver los estados de carga y error
+
+Como los datos son locales, el listado responde de inmediato. Para verlos en el navegador (DevTools → Network):
+- **Carga:** activar la limitación de red "Slow 4G" y recargar `/inspecciones`.
+- **Error:** bloquear la petición a `/api/inspecciones` (clic derecho → Block request URL) y recargar; aparece el estado de error con el botón Reintentar.
+- **Sin conexión:** con `npm run build && npm run start` (como en la sección de Service Worker), marcar "Offline" y recargar; un detalle ya visitado abre desde el caché del service worker.
+
+### Métrica de carga repetible
+
+El *First Load JS* por ruta que imprime `npm run build` (valores del commit evaluado):
+
+| Ruta | Estrategia | First Load JS |
+|---|---|---|
+| `/inspecciones` | CSR | 97.7 kB |
+| `/inspecciones/[id]` | SSR (`ƒ`) | 88.1 kB |
+
+---
+
 ## Datos y límites
 
-- Todos los datos son **sintéticos** (3 inspecciones de demostración).
-- **Sin service worker** ni funcionalidad offline implementada aún.
+- Todos los datos son **sintéticos** (3 inspecciones de demostración); `/api/inspecciones` devuelve esos datos locales, sin backend real ni latencia artificial.
 - **Sin autenticación** ni datos personales reales.
+- El service worker (Semana 3) precachea el shell y aplica network-first a la navegación; no hay sincronización en segundo plano, almacenamiento offline de datos (IndexedDB) ni página offline dedicada.
 - Las pruebas del manifest validan la estructura estática del archivo, **no** el comportamiento real de instalación PWA en un navegador.
+- Las pruebas no miden TTFB ni LCP y no incluyen una auditoría automática de accesibilidad.
+- El SSR de `/inspecciones/[id]` requiere un servidor Node en ejecución (`npm run start` después de `npm run build`).
+- El comportamiento sin conexión de las rutas de la Semana 4 se deduce del código de `public/sw.js`; puede comprobarse manualmente en el navegador (DevTools → Network → Offline).
 - Las vulnerabilidades reportadas por `npm audit` provienen de dependencias del starter y no se corrigen para no alterar versiones requeridas por el proyecto.
 
 ---
