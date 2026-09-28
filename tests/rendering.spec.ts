@@ -8,6 +8,10 @@ import InspeccionesListPage from '../src/app/inspecciones/page';
 import InspectionDetailPage from '../src/app/inspecciones/[id]/page';
 // @ts-ignore
 import * as DetailModule from '../src/app/inspecciones/[id]/page';
+// @ts-ignore
+import DetailLoading from '../src/app/inspecciones/[id]/loading';
+// @ts-ignore
+import DetailError from '../src/app/inspecciones/[id]/error';
 import * as SharedStates from '../src/components/loading-state';
 import React from 'react';
 
@@ -79,24 +83,42 @@ describe('CSR y SSR Rendering - Semana 4', () => {
     });
   });
 
-  it('AC-03: Renderiza el detalle (SSR) con datos estáticos', async () => {
-    const params = Promise.resolve({ id: 'inspection-001' });
-    const page = await InspectionDetailPage({ params });
-    const { container } = render(page);
+  describe('Detalle de inspección (SSR) — src/app/inspecciones/[id]/page.tsx (Germán)', () => {
+    it('AC-03: Renderiza el detalle (SSR) con datos estáticos', async () => {
+      const params = Promise.resolve({ id: 'inspection-001' });
+      const page = await InspectionDetailPage({ params });
+      const { container } = render(page);
 
-    expect(container.textContent).toContain('Laboratorio de Redes');
-    expect(container.textContent).toContain('Técnica A');
+      expect(container.textContent).toContain('Laboratorio de Redes');
+      expect(container.textContent).toContain('Técnica A');
+    });
+
+    it('AC-03: Renderiza estado not-found en detalle para ID inválido', async () => {
+      const params = Promise.resolve({ id: 'invalido-123' });
+      const page = await InspectionDetailPage({ params });
+      const { container } = render(page);
+
+      expect(container.textContent).toContain('No se encontró una inspección con el identificador "invalido-123".');
+    });
+
+    it('AC-03: el detalle tiene estado de carga (loading.tsx)', () => {
+      const { container } = render(React.createElement(DetailLoading));
+      expect(container.querySelector('.shell-state-loading')).not.toBeNull();
+    });
+
+    it('AC-03: el detalle tiene estado de error con reintento (error.tsx)', () => {
+      const reset = vi.fn();
+      const { getByText, getByRole } = render(
+        React.createElement(DetailError, { error: new Error('falla'), reset }),
+      );
+
+      expect(getByRole('alert').textContent).toContain('No se pudo cargar la inspección.');
+      fireEvent.click(getByText('Reintentar'));
+      expect(reset).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('AC-03: Renderiza estado not-found en detalle para ID inválido', async () => {
-    const params = Promise.resolve({ id: 'invalido-123' });
-    const page = await InspectionDetailPage({ params });
-    const { container } = render(page);
-
-    expect(container.textContent).toContain('No se encontró una inspección con el identificador "invalido-123".');
-  });
-
-  // ── Pruebas de Maria Jose  ────────────────────────────────────────────────
+  // ── Pruebas de Maria Jose ─────────────────────────────────────────
 
   describe('Modo de renderizado declarado en el código (estructura)', () => {
     const listSource = readFileSync(
@@ -116,15 +138,9 @@ describe('CSR y SSR Rendering - Semana 4', () => {
       expect(detailSource).not.toMatch(/["']use client["']/);
     });
 
-    it('AC-03: el detalle pregenera las rutas conocidas con generateStaticParams', async () => {
-      // Si el equipo decide SSR real (dynamic = "force-dynamic"), eliminar esta prueba.
-      expect(typeof DetailModule.generateStaticParams).toBe('function');
-      const params = await DetailModule.generateStaticParams();
-      const ids = params.map((p: { id: string }) => p.id);
-
-      expect(ids).toEqual(
-        expect.arrayContaining(['inspection-001', 'inspection-002', 'inspection-003']),
-      );
+    it('AC-03: el detalle se renderiza por petición (SSR) y no se pregenera en el build', () => {
+      expect(DetailModule.dynamic).toBe('force-dynamic');
+      expect(DetailModule.generateStaticParams).toBeUndefined();
     });
   });
 

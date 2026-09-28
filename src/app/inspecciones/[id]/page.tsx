@@ -45,9 +45,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 /* ── Generación estática de rutas conocidas ──────────────────────── */
 
-export function generateStaticParams() {
-  return inspections.map((ins) => ({ id: ins.id }));
-}
+/* ── Renderizado en servidor por petición (SSR) ──────────────────── */
+
+// Fuerza SSR real: la página se renderiza en cada petición, no en el build.
+export const dynamic = "force-dynamic";
 
 /* ── Componente de página (Server Component por defecto) ─────────── */
 
