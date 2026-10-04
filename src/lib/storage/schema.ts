@@ -14,6 +14,7 @@ export type QueueItem = {
   attempts: number;
   createdAt: string;
   lastError?: string;
+  syncingSince?: string;
 };
 
 // Clave versionada: si cambia la forma de QueueItem, subimos a v2
@@ -47,7 +48,8 @@ function isQueueItem(value: unknown): value is QueueItem {
     VALID_STATUSES.includes(v.status as QueueItemStatus) &&
     typeof v.attempts === "number" &&
     typeof v.createdAt === "string" &&
-    (v.lastError === undefined || typeof v.lastError === "string")
+    (v.lastError === undefined || typeof v.lastError === "string") &&
+    (v.syncingSince === undefined || typeof v.syncingSince === "string")
   );
 }
 
