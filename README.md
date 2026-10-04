@@ -55,13 +55,15 @@ Abrir [http://localhost:3000](http://localhost:3000) y comprobar las inspeccione
 npm run test -- --run
 ```
 
-Ejecuta `tests/starter.spec.mjs` (Node puro) y después Vitest (4 archivos, 54 pruebas):
+Ejecuta `tests/starter.spec.mjs` (Node puro) y después Vitest (6 archivos, 80 pruebas):
 
 1. **`tests/starter.spec.mjs`** — prueba del starter (Semana 1): verifica que `page.tsx` contiene las referencias esperadas.
 2. **`tests/manifest.spec.ts`** — prueba del manifest (Semana 2, 12 pruebas): valida estructura, campos obligatorios W3C, íconos PWA e integración con `layout.tsx`.
 3. **`tests/service-worker.spec.ts`** — service worker (Semana 3, 17 pruebas): valida la estructura de `sw.js`: versionamiento de caché, precaché del shell, limpieza de cachés viejos y las tres estrategias de `fetch`.
 4. **`tests/offline.spec.ts`** — registro offline (Semana 3, 9 pruebas): valida `register-service-worker.ts` simulando (mock) el navegador: sin soporte, registro exitoso, detección de actualización y fallo de registro.
 5. **`tests/rendering.spec.ts`** — rutas CSR y SSR (Semana 4, 16 pruebas): el listado (5), el detalle (4), la estructura CSR/SSR (3), el comportamiento del listado (2) y los estados compartidos (2). Comprueba que el listado inicie en estado de carga, que el detalle renderice el contenido con los `params`, maneje identificadores inexistentes (not-found) y tenga estados de carga y error.
+6. **`tests/storage-schema.spec.ts`** — esquema de la cola (Semana 5, 5 pruebas): lectura y escritura en `localStorage`, JSON corrupto y elementos inválidos.
+7. **`tests/sync.spec.ts`** — cola de sincronización (Semana 5, 21 pruebas): duplicados, reintentos, concurrencia, pérdida de datos, cierre de pestaña, respuestas tardías, conflictos y reconexión.
 
 **Limitación importante:** estas pruebas corren en Node.js con [`happy-dom`](https://github.com/capricorn86/happy-dom) como entorno simulado (`vitest.config.mts`), no en un navegador real. Validan la *estructura* del código (que existan los listeners correctos, que la lista de precaché sea la esperada) y el *comportamiento del módulo de registro* ante distintos escenarios simulados — no ejecutan un Service Worker real interceptando peticiones de red. Una cobertura E2E real (por ejemplo con Playwright) sería necesaria para probar el comportamiento en un navegador de verdad.
 
@@ -219,6 +221,42 @@ El *First Load JS* por ruta que imprime `npm run build` (valores del commit eval
 | `/inspecciones/[id]` | SSR (`ƒ`) | 88.1 kB |
 
 ---
+## Persistencia local y sincronización (Semana 5)
+
+### Qué implementa
+
+| Archivo | Responsabilidad |
+|---|---|
+| `src/lib/storage/schema.ts` | Cola offline en `localStorage` con clave versionada; descarta datos corruptos |
+| `src/lib/sync/queue.ts` | `enqueue`, `processQueue` (reintentos, sin duplicados ni pérdida), `recoverStaleItems`, `getQueueStats`, `startAutoSync` |
+| `src/lib/sync/conflict-policy.ts` | `resolveConflict`: política *client wins* (gana lo capturado en campo) |
+| `docs/sync-policy.md` | Política completa: estados, garantías, reintentos, conflictos, fallos encontrados y límites |
+
+### Uso
+
+```ts
+import { enqueue, processQueue, startAutoSync, getQueueStats } from "@/lib/sync/queue";
+
+enqueue(inspection);          // guarda en el dispositivo, sin duplicar por id
+const stop = startAutoSync(); // sincroniza al volver la red
+await processQueue();         // o manualmente
+getQueueStats();              // { pending, syncing, synced, failed, conflict, total }
+```
+
+### Cómo probarlo
+
+```bash
+npx vitest run tests/sync.spec.ts   # 21 pruebas de la cola
+npm run verify                      # todo: 80 pruebas + build
+```
+
+Cubren duplicados, reintentos, concurrencia, pérdida de datos al capturar durante una sincronización, cierre de pestaña, respuestas tardías, conflictos y reconexión.
+
+### Límites
+
+- La sincronización se prueba con un `fetch` simulado: `/api/inspecciones` solo implementa `GET`, no existe un endpoint que reciba la inspección.
+- La interfaz todavía no llama a `enqueue()` ni a `startAutoSync()`.
+- Sin espera creciente entre reintentos; `localStorage` limitado a ~5 MB y no atómico entre pestañas.
 
 ## Datos y límites
 
@@ -230,6 +268,7 @@ El *First Load JS* por ruta que imprime `npm run build` (valores del commit eval
 - El SSR de `/inspecciones/[id]` requiere un servidor Node en ejecución (`npm run start` después de `npm run build`).
 - El comportamiento sin conexión de las rutas de la Semana 4 se deduce del código de `public/sw.js`; puede comprobarse manualmente en el navegador (DevTools → Network → Offline).
 - Las vulnerabilidades reportadas por `npm audit` provienen de dependencias del starter y no se corrigen para no alterar versiones requeridas por el proyecto.
+- La cola de sincronización (Semana 5) se prueba con un `fetch` simulado: no existe un endpoint POST real, y la interfaz aún no la usa. Detalle en `docs/sync-policy.md`.
 
 ---
 
