@@ -4,6 +4,7 @@ import {
   selectLaboratory,
   LABORATORIES,
 } from "../src/lib/device/geolocation";
+import { showSyncNotification } from "../src/lib/notifications/client";
 
 // ---------------------------------------------------------------------------
 // Geolocalización (Irvin)
@@ -138,5 +139,92 @@ describe("Geolocalización", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("unavailable");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Notificaciones (Germán)
+// ---------------------------------------------------------------------------
+describe("Notificaciones", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("éxito: muestra la notificación si el permiso es granted", async () => {
+    const NotificationMock = vi.fn();
+    Object.defineProperty(NotificationMock, "permission", {
+      get: () => "granted",
+    });
+    vi.stubGlobal("window", { Notification: NotificationMock });
+    vi.stubGlobal("Notification", NotificationMock);
+
+    const result = await showSyncNotification("Prueba");
+
+    expect(result).toEqual({ ok: true, value: true });
+    expect(NotificationMock).toHaveBeenCalledWith("Prueba", undefined);
+  });
+
+  it("éxito: solicita permiso y muestra si la persona acepta", async () => {
+    const NotificationMock = vi.fn();
+    Object.defineProperty(NotificationMock, "permission", {
+      value: "default",
+      writable: true,
+    });
+    NotificationMock.requestPermission = vi.fn().mockResolvedValue("granted");
+    
+    vi.stubGlobal("window", { Notification: NotificationMock });
+    vi.stubGlobal("Notification", NotificationMock);
+
+    const result = await showSyncNotification("Prueba 2");
+
+    expect(NotificationMock.requestPermission).toHaveBeenCalled();
+    expect(result).toEqual({ ok: true, value: true });
+    expect(NotificationMock).toHaveBeenCalledWith("Prueba 2", undefined);
+  });
+
+  it("permiso denegado: devuelve 'denied'", async () => {
+    const NotificationMock = vi.fn();
+    Object.defineProperty(NotificationMock, "permission", {
+      get: () => "denied",
+    });
+    vi.stubGlobal("window", { Notification: NotificationMock });
+    vi.stubGlobal("Notification", NotificationMock);
+
+    const result = await showSyncNotification("Prueba denegado");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("denied");
+      expect(result.message).toContain("denegado");
+    }
+  });
+
+  it("sin soporte: devuelve 'unsupported' sin lanzar error", async () => {
+    vi.stubGlobal("window", {}); // window existe pero no tiene Notification
+    const result = await showSyncNotification("Prueba sin soporte");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("unsupported");
+    }
+  });
+
+  it("fallo o error inesperado: devuelve 'error' si requestPermission falla", async () => {
+    const NotificationMock = vi.fn();
+    Object.defineProperty(NotificationMock, "permission", {
+      value: "default",
+      writable: true,
+    });
+    NotificationMock.requestPermission = vi.fn().mockRejectedValue(new Error("Fake Error"));
+    vi.stubGlobal("window", { Notification: NotificationMock });
+    vi.stubGlobal("Notification", NotificationMock);
+
+    const result = await showSyncNotification("Prueba error");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("error");
+    }
   });
 });
