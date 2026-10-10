@@ -209,7 +209,7 @@
 ## Integrante: Germán Yair Martinez Bolaños
 
 - Estudiante: Germán Yair Martinez Bolaños
-- Commit SHA evaluado: 1076b473574b9534ba48d06364846a4b563d17d1
+- Commit SHA evaluado: c498a02
 - Mi contribución concreta y enlace a archivo, commit anterior o revisión: Creé `src/lib/notifications/client.ts` que implementa la función `showSyncNotification` para solicitar permiso de notificaciones (solo al ser llamada mediante una acción de la persona) y mostrar una notificación local si hay soporte y permiso. Agregué la documentación al final de `docs/capabilities.md` y 5 pruebas simulando el entorno en `tests/capabilities.spec.ts`.
 - Decisión técnica que puedo explicar: Decidí utilizar la API nativa de notificaciones de forma progresiva. Si no hay soporte o la persona deniega el permiso, la función no arroja un error ni interrumpe la aplicación, sino que devuelve un estado tipado (`CapabilityResult`) que permite a la app reaccionar y mostrar el aviso visualmente sin detener el hilo de ejecución principal. Además, la función maneja fallos inesperados de la API mediante un bloque try-catch, siempre devolviendo un objeto controlable.
 - Prueba que ejecuté y resultado: Ejecuté `npm run verify`. Verifiqué que las 5 pruebas añadidas en `tests/capabilities.spec.ts` pasaron (success, solicitar y otorgar permiso, denegado, unsupported, fallback/error), sumando un total de 95 tests exitosos en Vitest. El proceso de construcción (build) también finalizó sin problemas.
