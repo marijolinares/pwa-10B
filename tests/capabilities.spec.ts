@@ -6,6 +6,186 @@ import {
 } from "../src/lib/device/geolocation";
 import { showSyncNotification } from "../src/lib/notifications/client";
 
+import {
+  captureEvidence,
+  validateEvidenceFile,
+  isCameraCaptureSupported,
+  MAX_EVIDENCE_BYTES,
+} from "../src/lib/device/camera";
+
+
+// ---------------------------------------------------------------------------
+// Cámara (Majo)
+// ---------------------------------------------------------------------------
+describe("Cámara", () => {
+  const photo = () =>
+    new File(["foto-sintetica"], "evidencia.jpg", { type: "image/jpeg" });
+
+  /**
+   * Simula el selector del navegador: al llamar a click(), la persona elige
+   * un archivo (o cancela). Devuelve los inputs que creó la función.
+   */
+  function simulatePicker(action: { file?: File; cancel?: boolean }) {
+    const created: HTMLInputElement[] = [];
+    vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(function (
+      this: HTMLInputElement,
+    ) {
+      created.push(this);
+      if (action.cancel) {
+        this.dispatchEvent(new Event("cancel"));
+        return;
+      }
+      Object.defineProperty(this, "files", {
+        value: action.file ? [action.file] : [],
+        configurable: true,
+      });
+      this.dispatchEvent(new Event("change"));
+    });
+    return created;
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  it("éxito: devuelve la foto con solo el archivo, su tipo y su tamaño", async () => {
+    const file = photo();
+    simulatePicker({ file });
+
+    const result = await captureEvidence();
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(Object.keys(result.value).sort()).toEqual(["file", "size", "type"]);
+      expect(result.value.file).toBe(file);
+      expect(result.value.type).toBe("image/jpeg");
+      expect(result.value.size).toBe(file.size);
+    }
+  });
+
+  it("pide lo mínimo: solo imágenes, cámara trasera y no deja el input en la página", async () => {
+    const created = simulatePicker({ file: photo() });
+
+    await captureEvidence();
+
+    expect(created).toHaveLength(1);
+    expect(created[0].getAttribute("type")).toBe("file");
+    expect(created[0].getAttribute("accept")).toBe("image/*");
+    expect(created[0].getAttribute("capture")).toBe("environment");
+    expect(document.querySelector("input[type=file]")).toBeNull();
+  });
+
+  it("cancelar: devuelve 'unavailable' y deja guardar la inspección sin evidencia", async () => {
+    simulatePicker({ cancel: true });
+
+    const result = await captureEvidence();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("unavailable");
+      expect(result.message).toContain("sin evidencia");
+    }
+    expect(document.querySelector("input[type=file]")).toBeNull();
+  });
+
+  it("sin soporte: devuelve 'unsupported' sin lanzar error", async () => {
+    vi.stubGlobal("document", undefined);
+
+    expect(isCameraCaptureSupported()).toBe(false);
+    const result = await captureEvidence();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("unsupported");
+  });
+
+  it("archivo que no es imagen: devuelve 'error'", async () => {
+    simulatePicker({
+      file: new File(["texto"], "notas.txt", { type: "text/plain" }),
+    });
+
+    const result = await captureEvidence();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("error");
+  });
+
+  it("foto demasiado grande: devuelve 'error'", async () => {
+    const file = photo();
+    Object.defineProperty(file, "size", { value: MAX_EVIDENCE_BYTES + 1 });
+    simulatePicker({ file });
+
+    const result = await captureEvidence();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("error");
+      expect(result.message).toContain("5 MB");
+    }
+  });
+
+  it("acepta una foto que pesa exactamente el máximo", () => {
+    const file = photo();
+    Object.defineProperty(file, "size", { value: MAX_EVIDENCE_BYTES });
+
+    expect(validateEvidenceFile(file).ok).toBe(true);
+  });
+
+  it("imagen vacía: devuelve 'error'", () => {
+    const result = validateEvidenceFile(
+      new File([], "vacia.jpg", { type: "image/jpeg" }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("error");
+  });
+
+  it("sin archivo: devuelve 'unavailable'", () => {
+    const result = validateEvidenceFile(undefined);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("unavailable");
+  });
+
+  it("fallo inesperado: si el navegador falla al abrir el selector, devuelve 'error' y limpia", async () => {
+    vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {
+      throw new Error("fallo simulado");
+    });
+
+    const result = await captureEvidence();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("error");
+    expect(document.querySelector("input[type=file]")).toBeNull();
+  });
+
+  it("no abre el selector al importar: solo al llamar la función", async () => {
+    const click = vi
+      .spyOn(HTMLInputElement.prototype, "click")
+      .mockImplementation(() => undefined);
+
+    vi.resetModules();
+    await import("../src/lib/device/camera");
+
+    expect(click).not.toHaveBeenCalled();
+    expect(document.querySelector("input[type=file]")).toBeNull();
+  });
+
+  it("limita los datos: no guarda ni envía la foto", async () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    simulatePicker({ file: photo() });
+
+    const result = await captureEvidence();
+
+    expect(result.ok).toBe(true);
+    expect(setItem).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Geolocalización (Irvin)
 // Los demás integrantes agregan su bloque AL FINAL de este archivo.
