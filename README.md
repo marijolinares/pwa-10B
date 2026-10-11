@@ -55,7 +55,7 @@ Abrir [http://localhost:3000](http://localhost:3000) y comprobar las inspeccione
 npm run test -- --run
 ```
 
-Ejecuta `tests/starter.spec.mjs` (Node puro) y después Vitest (6 archivos, 80 pruebas):
+Ejecuta `tests/starter.spec.mjs` (Node puro) y después Vitest (7 archivos, 107 pruebas):
 
 1. **`tests/starter.spec.mjs`** — prueba del starter (Semana 1): verifica que `page.tsx` contiene las referencias esperadas.
 2. **`tests/manifest.spec.ts`** — prueba del manifest (Semana 2, 12 pruebas): valida estructura, campos obligatorios W3C, íconos PWA e integración con `layout.tsx`.
@@ -64,6 +64,7 @@ Ejecuta `tests/starter.spec.mjs` (Node puro) y después Vitest (6 archivos, 80 p
 5. **`tests/rendering.spec.ts`** — rutas CSR y SSR (Semana 4, 16 pruebas): el listado (5), el detalle (4), la estructura CSR/SSR (3), el comportamiento del listado (2) y los estados compartidos (2). Comprueba que el listado inicie en estado de carga, que el detalle renderice el contenido con los `params`, maneje identificadores inexistentes (not-found) y tenga estados de carga y error.
 6. **`tests/storage-schema.spec.ts`** — esquema de la cola (Semana 5, 5 pruebas): lectura y escritura en `localStorage`, JSON corrupto y elementos inválidos.
 7. **`tests/sync.spec.ts`** — cola de sincronización (Semana 5, 21 pruebas): duplicados, reintentos, concurrencia, pérdida de datos, cierre de pestaña, respuestas tardías, conflictos y reconexión.
+8. **`tests/capabilities.spec.ts`** — capacidades del dispositivo (Semana 6, 27 pruebas): geolocalización (10), notificaciones (5) y cámara (12). Con el navegador simulado comprueban el éxito, el permiso denegado, la falta de soporte, los errores y que nunca se pida un permiso al importar el módulo.
 
 **Limitación importante:** estas pruebas corren en Node.js con [`happy-dom`](https://github.com/capricorn86/happy-dom) como entorno simulado (`vitest.config.mts`), no en un navegador real. Validan la *estructura* del código (que existan los listeners correctos, que la lista de precaché sea la esperada) y el *comportamiento del módulo de registro* ante distintos escenarios simulados — no ejecutan un Service Worker real interceptando peticiones de red. Una cobertura E2E real (por ejemplo con Playwright) sería necesaria para probar el comportamiento en un navegador de verdad.
 
@@ -115,23 +116,40 @@ pwa-10B/
 │   │   ├── app-shell.tsx      ← Shell: navegación + estados (carga, error, vacío)
 │   │   └── loading-state.tsx  ← Estados compartidos por las rutas (semana 4)
 │   └── lib/
+│       ├── capabilities/
+│       │   └── result.ts      ← Resultado común de las capacidades (semana 6)
 │       ├── data/
 │       │   └── inspections.ts ← Datos sintéticos de inspecciones
-│       └── pwa/
-│           └── register-service-worker.ts ← Registro del service worker (semana 3)
+│       ├── device/
+│       │   ├── geolocation.ts ← Ubicación opcional (semana 6)
+│       │   └── camera.ts      ← Evidencia fotográfica opcional (semana 6)
+│       ├── notifications/
+│       │   └── client.ts      ← Notificación local de cambio (semana 6)
+│       ├── pwa/
+│       │   └── register-service-worker.ts ← Registro del service worker (semana 3)
+│       ├── storage/
+│       │   └── schema.ts      ← Cola offline en localStorage (semana 5)
+│       └── sync/
+│           ├── queue.ts       ← Cola de sincronización (semana 5)
+│           └── conflict-policy.ts ← Política de conflictos (semana 5)
 ├── tests/
 │   ├── starter.spec.mjs       ← Prueba del starter (semana 1)
 │   ├── manifest.spec.ts       ← Prueba del manifest (semana 2)
 │   ├── service-worker.spec.ts ← Prueba del service worker (semana 3)
 │   ├── offline.spec.ts        ← Prueba del registro offline (semana 3)
-│   └── rendering.spec.ts      ← Prueba de rutas CSR/SSR (semana 4)
+│   ├── rendering.spec.ts      ← Prueba de rutas CSR/SSR (semana 4)
+│   ├── storage-schema.spec.ts ← Prueba del esquema de la cola (semana 5)
+│   ├── sync.spec.ts           ← Prueba de la cola de sincronización (semana 5)
+│   └── capabilities.spec.ts   ← Prueba de las capacidades del dispositivo (semana 6)
 ├── evidence/
 │   └── individual.md          ← Evidencia individual por integrante
 ├── docs/
 │   ├── requirements.md        ← Requisitos del producto
 │   ├── decision-record.md     ← Justificación de la estrategia PWA
 │   ├── cache-strategy.md      ← Estrategia de caché (semana 3)
-│   └── rendering-decision.md  ← Decisión CSR/SSR (semana 4)
+│   ├── rendering-decision.md  ← Decisión CSR/SSR (semana 4)
+│   ├── sync-policy.md         ← Política de sincronización (semana 5)
+│   └── capabilities.md        ← Capacidades del dispositivo (semana 6)
 ├── scripts/
 │   └── verify.mjs             ← Script de verificación
 ├── vitest.config.mts          ← Configuración de Vitest
@@ -247,7 +265,7 @@ getQueueStats();              // { pending, syncing, synced, failed, conflict, t
 
 ```bash
 npx vitest run tests/sync.spec.ts   # 21 pruebas de la cola
-npm run verify                      # todo: 80 pruebas + build
+npm run verify                      # todo: 107 pruebas + build
 ```
 
 Cubren duplicados, reintentos, concurrencia, pérdida de datos al capturar durante una sincronización, cierre de pestaña, respuestas tardías, conflictos y reconexión.
@@ -257,6 +275,60 @@ Cubren duplicados, reintentos, concurrencia, pérdida de datos al capturar duran
 - La sincronización se prueba con un `fetch` simulado: `/api/inspecciones` solo implementa `GET`, no existe un endpoint que reciba la inspección.
 - La interfaz todavía no llama a `enqueue()` ni a `startAutoSync()`.
 - Sin espera creciente entre reintentos; `localStorage` limitado a ~5 MB y no atómico entre pestañas.
+
+---
+
+## Capacidades del dispositivo y notificaciones (Semana 6)
+
+### Qué implementa
+
+| Archivo | Responsabilidad |
+|---|---|
+| `src/lib/capabilities/result.ts` | Resultado común `{ ok: true, value }` / `{ ok: false, reason, message }` con los motivos `unsupported`, `denied`, `unavailable`, `timeout` y `error` |
+| `src/lib/device/geolocation.ts` | `requestPosition()`: lectura puntual de la ubicación (máximo 8 s). Alternativa sin permiso: `selectLaboratory()` con la lista `LABORATORIES` |
+| `src/lib/notifications/client.ts` | `showSyncNotification()`: notificación local de cambio; pide permiso solo al llamarla |
+| `src/lib/device/camera.ts` | `captureEvidence()`: adjunta una foto opcional como evidencia (cámara trasera en el teléfono, selector de archivos en la computadora) |
+| `docs/capabilities.md` | Principios, permiso y datos mínimos, alternativa y trade-offs de cada capacidad |
+
+### Reglas que cumplen las tres capacidades
+
+1. **El permiso se pide solo por una acción de la persona** (por ejemplo, el clic de un botón); importar un módulo nunca abre un cuadro de permiso.
+2. **Nunca lanzan error:** devuelven un `CapabilityResult` con el motivo y un mensaje en español listo para mostrarse.
+3. **Datos mínimos:** las coordenadas y la foto viven solo en memoria; no se guardan ni se envían. Todos los datos del proyecto son sintéticos.
+4. **El flujo sigue sin la capacidad:** sin ubicación se elige el laboratorio a mano; sin foto, la inspección se guarda sin evidencia; sin notificación, el aviso se muestra dentro de la app.
+
+### Uso
+
+```ts
+import { captureEvidence } from "@/lib/device/camera";
+
+// Dentro del manejador de clic de un botón "Adjuntar foto (opcional)":
+const photo = await captureEvidence();
+if (photo.ok) {
+  // photo.value = { file, type, size }
+} else {
+  // photo.reason: "unsupported" | "unavailable" | "error"
+  // photo.message ya indica que la inspección se guarda sin evidencia
+}
+```
+
+### Cómo probarlo
+
+```bash
+npx vitest run tests/capabilities.spec.ts   # 27 pruebas de las tres capacidades
+npm run verify                              # todo: 107 pruebas + build
+```
+
+Las pruebas simulan las APIs del navegador (`navigator.geolocation`, `Notification` y el selector de archivos). Cubren el éxito, el permiso denegado, la falta de soporte, el tiempo agotado, los errores, los límites de la foto (solo imágenes, máximo 5 MB) y que no se pida nada al importar ni se guarde o envíe la foto.
+
+### Límites
+
+- La interfaz todavía no llama a `requestPosition()`, `showSyncNotification()` ni `captureEvidence()`: se prueban con el navegador simulado, no con los cuadros de permiso reales.
+- Solo hay notificaciones locales: no existe un servidor de notificaciones push ni suscripción. Además, `new Notification()` no funciona en Chrome para Android; para ese caso haría falta mostrarla desde el service worker.
+- La foto conserva sus metadatos (por ejemplo, la ubicación) porque no se reprocesa, y una foto de 5 MB no cabe en `localStorage`; guardarla requeriría IndexedDB.
+- En una computadora el atributo `capture` se ignora y se abre el selector de archivos.
+
+---
 
 ## Datos y límites
 
@@ -269,6 +341,7 @@ Cubren duplicados, reintentos, concurrencia, pérdida de datos al capturar duran
 - El comportamiento sin conexión de las rutas de la Semana 4 se deduce del código de `public/sw.js`; puede comprobarse manualmente en el navegador (DevTools → Network → Offline).
 - Las vulnerabilidades reportadas por `npm audit` provienen de dependencias del starter y no se corrigen para no alterar versiones requeridas por el proyecto.
 - La cola de sincronización (Semana 5) se prueba con un `fetch` simulado: no existe un endpoint POST real, y la interfaz aún no la usa. Detalle en `docs/sync-policy.md`.
+- Las capacidades de la Semana 6 (ubicación, notificaciones y cámara) se prueban con APIs del navegador simuladas y la interfaz aún no las usa; no hay notificaciones push reales y la foto no se guarda ni se envía. Detalle en `docs/capabilities.md`.
 
 ---
 
