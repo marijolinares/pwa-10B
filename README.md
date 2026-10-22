@@ -258,6 +258,37 @@ Cubren duplicados, reintentos, concurrencia, pérdida de datos al capturar duran
 - La interfaz todavía no llama a `enqueue()` ni a `startAutoSync()`.
 - Sin espera creciente entre reintentos; `localStorage` limitado a ~5 MB y no atómico entre pestañas.
 
+---
+
+## Estrategia de pruebas y CI (Semana 7)
+
+La estrategia completa (capas de prueba, flujo común, defecto controlado y limitaciones) está en [`docs/test-strategy.md`](docs/test-strategy.md).
+
+### Cómo correr las pruebas
+
+```bash
+npm ci                  # instalación limpia
+npm test -- --run       # pruebas unitarias e integración (Vitest)
+npm run verify          # archivos + pruebas + build; genera reports/verification.json
+```
+
+Pruebas E2E con Playwright (a cargo de Lin):
+
+```bash
+[COMPLETAR: comando que defina Lin, por ejemplo npx playwright test]
+```
+
+### CI
+
+El workflow de GitHub Actions ejecuta `npm ci`, `npm run build`, `npm run verify` y las pruebas E2E. Los artefactos ([COMPLETAR: reporte de Playwright y trazas] y `reports/verification.json`) se descargan desde la pestaña Actions.
+
+### Limitaciones
+
+- Las pruebas de Vitest usan un navegador simulado (`happy-dom`), no un navegador real.
+- El E2E cubre solo el flujo común y la variante sin permiso.
+
+---
+
 ## Datos y límites
 
 - Todos los datos son **sintéticos** (3 inspecciones de demostración); `/api/inspecciones` devuelve esos datos locales, sin backend real ni latencia artificial.
