@@ -32,9 +32,6 @@ export type SaveResult = { created: boolean; inspection: Inspection };
 export function saveInspection(inspection: Inspection): SaveResult {
   const current = store();
   const existing = current.find((item) => item.id === inspection.id);
-  if (existing) {
-    return { created: false, inspection: { ...existing } };
-  }
   current.push({ ...inspection });
   return { created: true, inspection: { ...inspection } };
 }
