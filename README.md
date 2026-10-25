@@ -360,3 +360,35 @@ El workflow de CI ejecuta:
 3. `npm run verify` — verificación completa (archivos + pruebas + build)
 
 Los artefactos de evidencia se descargan desde la pestaña Actions del repositorio.
+
+
+---
+
+## Semana 8: Pirámide de pruebas e integración continua
+
+### Comandos de ejecución y verificación
+
+| Comando | Descripción | Artefactos generados |
+|---|---|---|
+| `npm ci` | Instalación reproducible de dependencias | `node_modules` |
+| `npm run lint` | Análisis estático de código sin advertencias | Consola |
+| `npm run typecheck` | Comprobación estricta de tipos TypeScript | Consola |
+| `npm run build` | Compilación de producción de Next.js | `.next/` |
+| `npm run test:unit` | Pruebas unitarias de validación y cola | `reports/unit-junit.xml` |
+| `npm run test:integration` | Pruebas de integración de persistencia y deduplicación | `reports/integration-junit.xml` |
+| `npm run test:coverage` | Suite completa con reporte de cobertura V8 | `reports/vitest-junit.xml`, `coverage/` |
+| `npm run test:e2e` | Pruebas E2E en Chromium con Playwright | `playwright-report/`, `test-results/` |
+| `npm run verify` o `make verify` | Verificación técnica global | `reports/verification.json` |
+
+### Capas implementadas
+1. **Unitarias (`tests/unit/`)**:
+   - `tests/unit/inspection-validation.spec.ts`: Validación de reglas de captura, fechas gregorianas reales, normalización y estados derivados.
+   - `tests/unit/queue-rules.spec.ts`: Reglas de encolado, protección de duplicados, stale items e idempotencia en cliente y servidor.
+2. **Integración (`tests/integration/`)**:
+   - `tests/integration/offline-persistence.spec.ts`: Persistencia en `localStorage` y recarga sin red.
+   - `tests/integration/sync-deduplication.spec.ts`: Sincronización contra el endpoint `POST /api/inspecciones`, control de reintentos y deduplicación con fixtures.
+3. **E2E (`tests/e2e/`)**:
+   - `tests/e2e/flujo-offline.e2e.ts`: Flujo completo en navegador real (crear → guardar offline → recargar → reconectar → sincronizar sin duplicar) y variante con geolocalización denegada.
+4. **Estrategia y CI**:
+   - Documentación en `docs/test-strategy.md`.
+   - Workflow automatizado en `.github/workflows/academic-evaluation.yml`.

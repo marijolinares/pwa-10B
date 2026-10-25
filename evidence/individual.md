@@ -230,3 +230,38 @@
 - Limitación, dificultad o riesgo que identifiqué: En computadora el atributo `capture` se ignora y se abre el selector de archivos; el evento `cancel` no se dispara igual en todos los navegadores, y si no llega, la promesa de `captureEvidence()` queda pendiente (la interfaz no debe bloquearse esperándola). La foto conserva sus metadatos (por ejemplo, la ubicación) porque no se reprocesa: es un riesgo de privacidad que queda documentado. Una foto de 5 MB no cabe en `localStorage` (~5 MB en total), así que persistir evidencia requeriría IndexedDB. Además, el alias `@/` no resuelve en Vitest, así que usé imports relativos, como indicó Irvin. En el proceso, GitHub rechazó mi primer `push` por una credencial de acceso vencida; la reemplacé por una nueva y borré la anterior de Windows.
 - Cambio que podría defender o modificar en vivo: Cambiar `file.size > MAX_EVIDENCE_BYTES` por `>=` en `validateEvidenceFile` y correr `npx vitest run tests/capabilities.spec.ts`: falla "acepta una foto que pesa exactamente el máximo". Comentar `input?.remove()` en `finish`: fallan 3 pruebas (limpieza del input). Quitar la validación `file.type.startsWith("image/")`: falla la de "archivo que no es imagen". Llamar `captureEvidence()` al importar el módulo: falla "no abre el selector al importar". Con más tiempo, guardaría la foto en IndexedDB y le quitaría los metadatos antes de adjuntarla.
 - Uso declarado de IA (herramienta, propósito, validación): Usé Claude para analizar el kit de la actividad, planear el orden de trabajo del equipo, redactar el borrador de `camera.ts`, sus 12 pruebas y las secciones de `docs/capabilities.md` y del README, y para comprobar en una copia aparte de los archivos que las pruebas fallan cuando se introducen los cuatro cambios dañinos de arriba. Pegué el código, ejecuté `npm run verify`, revisé el `diff` y los resultados antes de aceptarlos, y puedo explicar cada decisión.
+
+
+# Evidencia individual · semana 8
+
+Conserven las secciones de semanas anteriores. Copien este bloque por cada integrante vigente del equipo y complétenlo con resultados reales.
+
+## Nombre: Germán Yair Martínez Bolaños
+
+- Grupo y equipo: PWA - 10B
+- Mi contribución de esta semana y enlace:
+  - Implementación del catálogo de fixtures sintéticos aislados libres de PII en `tests/fixtures/synthetic-inspections.ts`.
+  - Construcción de la suite de pruebas unitarias en `tests/unit/inspection-validation.spec.ts` (16 pruebas que validan entradas válidas/inválidas, normalización, límites y estados deducidos) y en `tests/unit/queue-rules.spec.ts` (12 pruebas sobre reglas de encolado, deduplicación e idempotencia, y recuperación de huérfanos).
+  - Construcción de la suite de pruebas de integración en `tests/integration/offline-persistence.spec.ts` (5 pruebas de persistencia offline en localStorage y recarga sin red) y en `tests/integration/sync-deduplication.spec.ts` (4 pruebas que conectan la cola con el endpoint real `POST /api/inspecciones` y demuestran que reintentar la sincronización no genera duplicados en el store).
+  - Diagnóstico y corrección del defecto en `src/lib/validation/inspection.ts` donde hallazgos negativos (`findings < 0`) eran aceptados erróneamente por `asWholeNumber`.
+- Decisión técnica y motivo:
+  - Diseñé pruebas de integración que conectan directamente `processQueue()` con el handler `POST` de Next.js (`src/app/api/inspecciones/route.ts`) mediante un mock de `fetch` que despacha solicitudes `Request` reales al servidor. Esto comprueba de punta a punta la semántica HTTP (códigos 201 Created para la primera sincronización y 200 OK para reintentos idempotentes) y garantiza que el store de inspecciones mantenga exactamente un único registro.
+  - Se estructuraron fixtures sintéticos dedicados en `tests/fixtures/synthetic-inspections.ts` para desacoplar las pruebas de dependencias externas o datos de producción, cubriendo casos límite (valores frontera de longitud, fechas bisiestas e inválidas, hallazgos máximos de 99).
+- Prueba/comando que ejecuté:
+  - `npm run test:unit`: 28 pruebas pasadas en 2 archivos (`tests/unit/inspection-validation.spec.ts` y `tests/unit/queue-rules.spec.ts`).
+  - `npm run test:integration`: 9 pruebas pasadas en 2 archivos (`tests/integration/offline-persistence.spec.ts` y `tests/integration/sync-deduplication.spec.ts`).
+  - `npm test`: 144 pruebas pasadas en 11 archivos de Vitest.
+  - `npm run test:coverage`: Cobertura de 90.69% en sentencias, 88.46% en ramas, 93.10% en funciones y 92.75% en líneas.
+  - `npm run verify`: Verificación técnica completa en verde (lint, typecheck, tests y build exitosos).
+- Resultado observado y enlace al reporte:
+  - Todas las suites ejecutaron en verde (`pass`). Se generaron exitosamente los reportes JUnit `reports/unit-junit.xml`, `reports/integration-junit.xml`, `reports/vitest-junit.xml`, el reporte técnico `reports/verification.json` y el reporte HTML/lcov en `coverage/`.
+- Qué demuestra y qué no demuestra:
+  - Qué demuestra: Que una inspección capturada sin red se persiste íntegramente en `localStorage`, sobrevive a recargas, y al reconectar se sincroniza hacia el endpoint sin duplicar registros al reintentar la operación. Demuestra además que entradas inválidas son rechazadas con mensajes descriptivos antes de entrar a la cola.
+  - Qué no demuestra: No prueba la renderización de estilos ni la interacción física del navegador en un dispositivo móvil real (lo cual está cubierto por la capa E2E de Playwright asignada a Lin). Tampoco prueba la latencia de red en conexiones de baja velocidad (2G/3G).
+- Limitación o riesgo:
+  - `localStorage` tiene una cuota máxima de ~5 MB por origen. Si en futuras semanas se requiere adjuntar evidencias fotográficas capturadas desde la cámara a la cola de sincronización, se deberá migrar la persistencia de la cola a IndexedDB.
+- IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»:
+  - Herramienta: Antigravity (DeepMind AI).
+  - Propósito: Asistencia en el diseño de fixtures sintéticos, generación de casos de prueba frontera para validación (fechas inválidas, límites numéricos) y análisis del fallo en la validación de hallazgos negativos.
+  - Partes influidas: Estructura de `tests/fixtures/synthetic-inspections.ts`, suites en `tests/unit/` y `tests/integration/`, y corrección de `asWholeNumber` en `src/lib/validation/inspection.ts`.
+  - Validación propia: Ejecución local paso a paso con Vitest, confirmación de aserciones de fallo con el bug de números negativos, corrección del código de validación, comprobación de 144 pruebas en verde y ejecución de `npm run verify`.
