@@ -269,7 +269,7 @@ Conserven las secciones de semanas anteriores. Copien este bloque por cada integ
 ## Integrante: Irvin Isael Martínez Alejo
 
 - Estudiante: Irvin Isael Martínez Alejo
-- Commit SHA evaluado: c704984 
+- Commit SHA evaluado: 65f2a09
 - Mi contribución concreta y enlace a archivo, commit anterior o revisión: Redacté `docs/test-strategy.md` (objetivo y alcance, capas de prueba, flujo común y variante sin permiso, fixtures, CI y artefactos, defecto controlado y limitaciones) y agregué al `README.md` la sección "Estrategia de pruebas y CI (Semana 8)" con los comandos para correr las pruebas. [COMPLETAR: defecto controlado en la rama temporal `irvin/tmp-defecto-controlado`, commit [SHA] y enlace al run rojo en Actions.]
 - Decisión que puedo explicar y por qué: Dividí las pruebas en capas: Vitest con `happy-dom` para la lógica de la cola y el esquema (rápidas y deterministas) y Playwright para el flujo en un navegador real, porque las pruebas con navegador simulado no demuestran el comportamiento real de service worker, permisos ni red. El defecto controlado lo hice en una rama temporal que nunca se fusiona, para comprobar que las pruebas realmente detectan un fallo sin tocar `develop`. Elegí borrar el bloque `if (existing)` de `src/lib/server/inspection-store.ts`, porque es la regla que hace idempotente el POST: sin ella, reintentar el mismo envío (por ejemplo, si se pierde la respuesta) crea una inspección duplicada, y ese es el riesgo central de un flujo con conexión intermitente.
 - Comando o prueba proporcionada que ejecuté: `npm run verify` en mi rama `irvin/w07-test-strategy`, después de `npm ci`. También ejecuté `npm run build` y `npm run test:e2e` sobre la rama `lin/w08-base` de Majo (commit c740b1d): las 4 pruebas E2E pasaron en 11.3 s.
