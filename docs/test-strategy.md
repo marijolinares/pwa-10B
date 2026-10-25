@@ -141,8 +141,8 @@ Resultado observado al probarlo en una copia de `main` con el defecto:
 Se restaura el bloque `if (existing)` y se vuelven a ejecutar las tres capas: `28 passed` (unitarias), `9 passed` (integración) y `4 passed` (E2E).
 
 ### Evidencia enlazada (en Actions)
-- Ejecución en rojo (con el defecto): [COMPLETAR enlace al run y SHA del commit con el defecto]
-- Ejecución en verde (recuperación): [COMPLETAR enlace al run y SHA del commit restaurado]
+- Ejecución en rojo (con el defecto): commit `65f2a09` en la rama temporal `irvin/tmp-defecto-controlado` (nunca fusionada). Run de *Academic Evaluation*: https://github.com/marijolinares/pwa-10B/actions/runs/40240569659
+- Ejecución en verde (recuperación): commit `1f81f20` en la misma rama, mismo workflow *Academic Evaluation*: https://github.com/marijolinares/pwa-10B/actions/runs/40241049094
 
 ---
 
