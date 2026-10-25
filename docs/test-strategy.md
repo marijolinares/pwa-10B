@@ -11,6 +11,18 @@ El objetivo principal de esta semana es consolidar la **pirámide de pruebas** y
 
 ---
 
+### Responsables y estado
+
+| Capa | Herramienta | Responsable |
+|---|---|---|
+| Unitarias, integración y fixtures | Vitest + happy-dom | Germán |
+| E2E, captura offline, POST idempotente y CI | Playwright + GitHub Actions | Majo |
+| Estrategia, README y defecto controlado | Documentación + rama temporal | Irvin |
+
+Estado actual: 11 archivos de Vitest con 144 pruebas (navegador simulado: 28 unitarias, 9 de integración y el resto de las semanas 1 a 6) y 4 pruebas E2E de Playwright en Chromium real.
+
+---
+
 ## 2. Matriz de Riesgo vs. Capa de Prueba
 
 Relación entre cada riesgo crítico del sistema y la capa de prueba seleccionada en la pirámide:
@@ -104,26 +116,33 @@ Ejecuta las siguientes etapas secuenciales en Ubuntu con Node 22:
 
 ## 6. Procedimiento para Demostrar el Defecto Controlado
 
-Para cumplir con el criterio **AC-03 (Calidad verificable)**, se utiliza el siguiente procedimiento en una rama temporal aislada:
+Para cumplir con el criterio **AC-03 (Calidad verificable)**, se introduce un defecto a propósito en una rama temporal que nunca se fusiona (`irvin/tmp-defecto-controlado`, creada desde `develop`).
 
-### Defecto Seleccionado: Omitir la protección de deduplicación en el servidor
+### Defecto seleccionado: omitir la protección de deduplicación en el servidor
 - **Archivo afectado**: `src/lib/server/inspection-store.ts`
-- **Cambio en rama temporal**: Comentar la comprobación de existencia previa en `saveInspection`:
+- **Cambio en la rama temporal**: borrar el bloque que hace idempotente a `saveInspection`:
   ```ts
-  // DEFECTO CONTROLADO EN RAMA TEMPORAL:
-  // const existing = current.find((item) => item.id === inspection.id);
-  // if (existing) {
-  //   return { created: false, inspection: { ...existing } };
-  // }
+  if (existing) {
+    return { created: false, inspection: { ...existing } };
+  }
   ```
-- **Prueba que falla**:
-  `npm run test:integration`
-  Específicamente falla la prueba:
-  `tests/integration/sync-deduplication.spec.ts > Integración: Sincronización y deduplicación con fixtures (Semana 8) > deduplicación crítica: reintentar la sincronización de la misma operación no crea un duplicado`
-  - *Resultado observado con defecto*: `AssertionError: expected 2 to be 1` (el servidor creó un duplicado).
-- **Recuperación**: Restaurar el bloque en `src/lib/server/inspection-store.ts` y re-ejecutar `npm run test:integration`:
-  - *Resultado observado*: `4 passed` en verde.
-- **Registro**: Conservar el SHA del commit con el fallo en la rama temporal y el enlace a la corrida en rojo en GitHub Actions, sin fusionar el defecto a `main`.
+  Sin ese bloque, reenviar el mismo id crea una inspección duplicada.
+
+### Qué pruebas lo detectan (una por cada capa) y qué salida dan
+Resultado observado al probarlo en una copia de `main` con el defecto:
+
+| Capa | Prueba que falla | Salida observada |
+|---|---|---|
+| Unitaria | `tests/unit/queue-rules.spec.ts` › reintento de la misma operación devuelve `created: false` y NO duplica el registro | `AssertionError: expected true to be false` |
+| Integración | `tests/integration/sync-deduplication.spec.ts` › deduplicación crítica: reintentar la sincronización de la misma operación no crea un duplicado | `AssertionError: expected 5 to be 4` (el servidor creó una fila de más) |
+| E2E | `tests/e2e/flujo-offline.e2e.ts` › enviar dos veces la misma inspección al servidor no crea un duplicado | `Expected: 200, Received: 201` (1 fallida, 3 pasan) |
+
+### Recuperación
+Se restaura el bloque `if (existing)` y se vuelven a ejecutar las tres capas: `28 passed` (unitarias), `9 passed` (integración) y `4 passed` (E2E).
+
+### Evidencia enlazada (en Actions)
+- Ejecución en rojo (con el defecto): [COMPLETAR enlace al run y SHA del commit con el defecto]
+- Ejecución en verde (recuperación): [COMPLETAR enlace al run y SHA del commit restaurado]
 
 ---
 
@@ -131,3 +150,6 @@ Para cumplir con el criterio **AC-03 (Calidad verificable)**, se utiliza el sigu
 1. **Almacenamiento**: `localStorage` se utiliza para la cola de sincronización de metadatos de inspecciones (~5 MB disponibles). Si en el futuro se persistieran imágenes fotográficas de alta resolución en la cola offline, se deberá incorporar IndexedDB.
 2. **Entorno de pruebas unitarias e integración**: Vitest ejecuta sobre `happy-dom`, simulando el entorno de navegador en Node.js de forma ultra-rápida. La validación en el motor de renderizado real queda cubierta por Playwright.
 3. **Servidor en memoria**: Para fines pedagógicos y reproducibilidad en CI sin dependencias de infraestructura en la nube, el almacenamiento del servidor reside en memoria (`globalThis.__pwaInspections`) inicializado con datos sintéticos.
+4. **Navegadores**: el E2E corre solo en Chromium de escritorio; no cubre otros navegadores ni dispositivos reales, y la desconexión es simulada con `context.setOffline`.
+5. **Alcance del E2E**: cubre el flujo común, la variante con ubicación denegada, la captura inválida y el envío doble; la cámara y las notificaciones no están conectadas a ninguna pantalla, así que no se prueban de punta a punta.
+

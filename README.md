@@ -328,6 +328,25 @@ Las pruebas simulan las APIs del navegador (`navigator.geolocation`, `Notificati
 - La foto conserva sus metadatos (por ejemplo, la ubicación) porque no se reprocesa, y una foto de 5 MB no cabe en `localStorage`; guardarla requeriría IndexedDB.
 - En una computadora el atributo `capture` se ignora y se abre el selector de archivos.
 
+## Resumen de la estrategia de pruebas y limitaciones (Semana 8)
+
+La estrategia completa (capas de prueba, matriz riesgo-prueba, flujo común, defecto controlado y limitaciones) está en [`docs/test-strategy.md`](docs/test-strategy.md). Los comandos de cada etapa están en la sección "Semana 8: Pirámide de pruebas e integración continua" de más abajo.
+
+Primera vez con las pruebas E2E:
+
+```bash
+npx playwright install chromium   # solo la primera vez
+npm run build
+npm run test:e2e
+```
+
+El workflow de GitHub Actions (`.github/workflows/academic-evaluation.yml`) ejecuta `npm ci`, lint, tipos, build, pruebas unitarias, de integración, cobertura, E2E y `npm run verify`. Los artefactos (`reportes-semana-08`: `coverage/`, `reports/`, `playwright-report/` y `test-results/`) se descargan desde la pestaña Actions y se suben siempre, aunque falle una etapa.
+
+### Limitaciones
+
+- Las pruebas de Vitest usan un navegador simulado (`happy-dom`), no un navegador real.
+- El E2E cubre el flujo común y la variante sin permiso, solo en Chromium de escritorio.
+
 ---
 
 ## Datos y límites
