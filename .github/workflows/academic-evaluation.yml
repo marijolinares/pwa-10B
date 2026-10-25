@@ -1,0 +1,73 @@
+# Semana 8 — Pirámide de pruebas e integración continua.
+# Ejecuta, en este orden: instalación limpia, lint, tipos, build, pruebas unitarias,
+# de integración, regresión completa con cobertura y E2E en navegador real.
+# Cualquier etapa obligatoria que falle hace fallar el workflow; los reportes y la
+# cobertura se suben como artefactos SIEMPRE (también cuando algo falla).
+name: Academic Evaluation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 22 con caché de npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalación limpia (npm ci)
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint (next lint, sin advertencias)
+        run: npm run lint
+
+      - name: Tipos (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Build (next build)
+        run: npm run build
+
+      - name: Pruebas unitarias (tests/unit)
+        run: npm run test:unit
+
+      - name: Pruebas de integración (tests/integration)
+        run: npm run test:integration
+
+      - name: Regresión completa de Vitest con cobertura
+        run: npm run test:coverage
+
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+
+      # Playwright arranca la app ya compilada con `npm run start -- -p 3100`
+      # (ver webServer en playwright.config.ts) y la apaga al terminar.
+      - name: Pruebas E2E (Playwright)
+        run: npm run test:e2e
+
+      - name: Verificación técnica (npm run verify)
+        run: npm run verify
+
+      - name: Publicar reportes y cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-semana-08
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            coverage/
+            reports/
+            playwright-report/
+            test-results/

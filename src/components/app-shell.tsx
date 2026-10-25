@@ -35,8 +35,12 @@ export function AppShell({ children }: AppShellProps) {
           <a href="/" className="app-shell-nav-link" aria-current="page">
             Inicio
           </a>
-          {/* Enlaces futuros (registrar inspección, sincronización, etc.)
-              se agregan aquí cuando existan las rutas correspondientes. */}
+          <a href="/inspecciones" className="app-shell-nav-link">
+            Listado
+          </a>
+          <a href="/inspecciones/nueva" className="app-shell-nav-link">
+            Nueva inspección
+          </a>
         </nav>
       </header>
 
