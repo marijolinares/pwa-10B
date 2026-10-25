@@ -260,7 +260,7 @@ Cubren duplicados, reintentos, concurrencia, pérdida de datos al capturar duran
 
 ---
 
-## Estrategia de pruebas y CI (Semana 7)
+## Estrategia de pruebas y CI (Semana 8)
 
 La estrategia completa (capas de prueba, flujo común, defecto controlado y limitaciones) está en [`docs/test-strategy.md`](docs/test-strategy.md).
 
@@ -275,12 +275,14 @@ npm run verify          # archivos + pruebas + build; genera reports/verificatio
 Pruebas E2E con Playwright (a cargo de Lin):
 
 ```bash
-[COMPLETAR: comando que defina Lin, por ejemplo npx playwright test]
+npx playwright install chromium   # solo la primera vez
+npm run build
+npm run test:e2e
 ```
 
 ### CI
 
-El workflow de GitHub Actions ejecuta `npm ci`, `npm run build`, `npm run verify` y las pruebas E2E. Los artefactos ([COMPLETAR: reporte de Playwright y trazas] y `reports/verification.json`) se descargan desde la pestaña Actions.
+El workflow de GitHub Actions ejecuta `npm ci`, `npm run build`, `npm run verify` y las pruebas E2E. Los artefactos (`playwright-report/`, `reports/playwright-junit.xml`, `test-results/`, y `reports/verification.json`) se descargan desde la pestaña Actions.
 
 ### Limitaciones
 
