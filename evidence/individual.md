@@ -238,7 +238,7 @@
 ## Integrante: Irvin Isael Martínez Alejo
 
 - Estudiante: Irvin Isael Martínez Alejo
-- Commit SHA evaluado: [pega el SHA corto de tu commit de código; lo sacas con `git log --oneline -5`]
+- Commit SHA evaluado: 3cd99fd
 - Mi contribución concreta y enlace a archivo, commit anterior o revisión: Creé `src/lib/security/headers.ts` con `buildCsp()` y `securityHeaders()`; `src/middleware.ts`, que aplica esos headers a las respuestas; ajusté `next.config.mjs` (`poweredByHeader: false` y `Cache-Control: no-cache` para `/sw.js`); creé `public/robots.txt`, el workflow `.github/workflows/week-09-w09-threat-model-privacy.yml` y `docs/threat-model.md`. Mi PR es el de la rama `irvin/w09-headers-threat-model`.
 - Decisión que puedo explicar y por qué: Apliqué los headers desde `src/middleware.ts` y no desde `next.config.mjs`, porque en Next 14 el archivo de configuración es `.mjs` y no puede importar un módulo `.ts`. Así `securityHeaders()` es la única fuente de verdad y es la misma función que prueban los tests. También dejé `geolocation=(self)` y `camera=(self)` en la Permissions-Policy porque la app usa esas capacidades desde la Semana 6; bloquearlas con `()` rompería funcionalidad existente.
 - Comando o prueba proporcionada que ejecuté: `npm ci` y `npm run verify`, además de `npm run dev` revisando la consola y la pestaña Network del navegador.
