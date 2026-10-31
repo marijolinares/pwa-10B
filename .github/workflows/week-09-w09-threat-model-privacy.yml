@@ -1,0 +1,42 @@
+name: Week 09 Security Checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install
+        run: npm ci --ignore-scripts --no-fund
+      - name: Verify (lint, typecheck, test, build)
+        run: npm run verify
+      - name: Required security artifacts exist
+        run: |
+          set -euo pipefail
+          test -f src/lib/security/headers.ts
+          test -f public/robots.txt
+          test -f docs/threat-model.md
+      - name: Basic secret scan
+        run: |
+          set -euo pipefail
+          if grep -rEn "(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|-----BEGIN [A-Z ]*PRIVATE KEY-----)" \
+            src public docs tests --exclude-dir=node_modules; then
+            echo "Posible secreto encontrado"; exit 1
+          fi
+      - name: Dependency audit (informativo)
+        continue-on-error: true
+        run: npm audit --audit-level=high
