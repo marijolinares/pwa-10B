@@ -19,7 +19,7 @@ export function buildCsp(options: CspOptions = {}): string {
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
-    "frame-ancestors": ["'none'"],
+    
   };
 
   const parts = Object.entries(directives).map(([k, v]) => `${k} ${v.join(" ")}`);
