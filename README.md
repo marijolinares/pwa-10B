@@ -411,3 +411,48 @@ Los artefactos de evidencia se descargan desde la pestaña Actions del repositor
 4. **Estrategia y CI**:
    - Documentación en `docs/test-strategy.md`.
    - Workflow automatizado en `.github/workflows/academic-evaluation.yml`.
+
+
+## Semana 9: Modelo de amenazas y privacidad aplicada
+
+Datos exclusivamente sintéticos. Qué amenazas se consideran y por qué se descartó o aceptó cada riesgo está en [`docs/threat-model.md`](docs/threat-model.md); qué datos se tratan, con qué finalidad y por cuánto tiempo, en [`docs/privacy-data-inventory.md`](docs/privacy-data-inventory.md).
+
+### Qué implementa
+
+| Control | Dónde vive | Qué evita |
+|---|---|---|
+| CSP y headers de seguridad (nosniff, anti-framing, referrer, permisos mínimos, HSTS) | `src/lib/security/headers.ts`, aplicados por `src/middleware.ts` | XSS, clickjacking, sniffing de tipo, tráfico sin cifrar |
+| `poweredByHeader: false` y `Cache-Control: no-cache` para `/sw.js` | `next.config.mjs` | Anunciar la tecnología; quedarse con un service worker viejo |
+| Detección de credenciales en texto | `src/lib/security/secrets.ts` | Claves o llaves subidas por accidente en una captura, un log o un archivo |
+| Sanitización y lectura segura del cuerpo JSON | `src/lib/security/sanitize.ts` | Etiquetas HTML, caracteres invisibles, cuerpos enormes, claves de contaminación de prototipos |
+| Redacción de logs y retención con vencimiento | `src/lib/security/privacy.ts` | Nombres, correos, teléfonos y coordenadas en logs; datos que se guardan de más |
+| API endurecida (415, 413, 400, 422; sin caché; sin eco de credenciales) | `src/app/api/inspecciones/route.ts` | Entradas hostiles al endpoint de sincronización |
+| `robots.txt` | `public/robots.txt` | Reduce la indexación de `/api/`. **No es un control de acceso** |
+
+### Cómo ejecutarlo y verificarlo
+
+```bash
+npm ci
+npm run verify                          # lint, tipos, pruebas y build (o: make verify)
+npx vitest run tests/security.spec.ts   # solo las pruebas de seguridad
+npm run build && npm run start          # app compilada en http://localhost:3000
+curl -I http://localhost:3000/          # revisar los headers de seguridad
+bash public-tests/check.sh              # chequeo público del kit (si está en el repo)
+```
+
+Las pruebas de seguridad (`tests/security.spec.ts`) están agrupadas en cinco bloques que corresponden a la tabla de amenazas: "CSP y headers", "Secretos", "Sanitización", "Privacidad y retención" y "API". Son deterministas, sin red y sin reloj real. Las cadenas con forma de credencial se arman al vuelo para que ningún valor parecido a una clave quede escrito en el repositorio. Cada control tiene un caso negativo: si alguien lo quita, una prueba falla.
+
+### Evidencia de que las pruebas detectan una regresión
+
+Se quitó la directiva `frame-ancestors` de la CSP en una rama temporal que **no se fusiona** (`lin/tmp-regresion-seguridad`). La prueba "la CSP restringe todo a 'self' y bloquea objetos, frames y bases ajenas" falló con `expected '…' to contain 'frame-ancestors \'none\''`; al restaurar la línea volvieron a pasar las 45 pruebas. Los enlaces a la ejecución en rojo y a la ejecución en verde están en [`evidence/individual.md`](evidence/individual.md).
+
+### Decisiones, supuestos y límites
+
+- **Headers en middleware, no en `next.config.mjs`**: Next 14 usa `next.config.mjs` (ESM) y no puede importar un archivo `.ts`. Con el middleware hay una sola fuente de verdad (`securityHeaders()`), la misma que prueban los tests.
+- **La CSP permite `'unsafe-inline'` en scripts y estilos** porque Next inyecta scripts inline. Debilita la protección contra XSS; la mejora es usar nonces por petición.
+- **Fallan hacia lo seguro**: un dato con fecha inválida se considera vencido y un campo con credenciales se rechaza.
+- **Las pruebas verifican funciones y valores de configuración**, no un navegador real. La app compilada se revisó con `curl -I` y el E2E de la Semana 8 sigue en verde con la CSP activa.
+- **La retención no se ejecuta sola todavía**: `isExpired` define la regla, pero ningún proceso borra datos. El servidor guarda en memoria y pierde todo al reiniciarse.
+- **El detector de credenciales es una heurística**: reduce el riesgo, no lo elimina.
+- **El chequeo público del kit** busca palabras como las de credenciales en todo el repositorio, así que también marca la documentación y el lockfile; no encuentra valores reales.
+- Todo lo anterior se amplía en `docs/threat-model.md` (riesgos residuales) y en `docs/privacy-data-inventory.md`.
