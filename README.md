@@ -328,6 +328,25 @@ Las pruebas simulan las APIs del navegador (`navigator.geolocation`, `Notificati
 - La foto conserva sus metadatos (por ejemplo, la ubicación) porque no se reprocesa, y una foto de 5 MB no cabe en `localStorage`; guardarla requeriría IndexedDB.
 - En una computadora el atributo `capture` se ignora y se abre el selector de archivos.
 
+## Resumen de la estrategia de pruebas y limitaciones (Semana 8)
+
+La estrategia completa (capas de prueba, matriz riesgo-prueba, flujo común, defecto controlado y limitaciones) está en [`docs/test-strategy.md`](docs/test-strategy.md). Los comandos de cada etapa están en la sección "Semana 8: Pirámide de pruebas e integración continua" de más abajo.
+
+Primera vez con las pruebas E2E:
+
+```bash
+npx playwright install chromium   # solo la primera vez
+npm run build
+npm run test:e2e
+```
+
+El workflow de GitHub Actions (`.github/workflows/academic-evaluation.yml`) ejecuta `npm ci`, lint, tipos, build, pruebas unitarias, de integración, cobertura, E2E y `npm run verify`. Los artefactos (`reportes-semana-08`: `coverage/`, `reports/`, `playwright-report/` y `test-results/`) se descargan desde la pestaña Actions y se suben siempre, aunque falle una etapa.
+
+### Limitaciones
+
+- Las pruebas de Vitest usan un navegador simulado (`happy-dom`), no un navegador real.
+- El E2E cubre el flujo común y la variante sin permiso, solo en Chromium de escritorio.
+
 ---
 
 ## Datos y límites
@@ -360,3 +379,35 @@ El workflow de CI ejecuta:
 3. `npm run verify` — verificación completa (archivos + pruebas + build)
 
 Los artefactos de evidencia se descargan desde la pestaña Actions del repositorio.
+
+
+---
+
+## Semana 8: Pirámide de pruebas e integración continua
+
+### Comandos de ejecución y verificación
+
+| Comando | Descripción | Artefactos generados |
+|---|---|---|
+| `npm ci` | Instalación reproducible de dependencias | `node_modules` |
+| `npm run lint` | Análisis estático de código sin advertencias | Consola |
+| `npm run typecheck` | Comprobación estricta de tipos TypeScript | Consola |
+| `npm run build` | Compilación de producción de Next.js | `.next/` |
+| `npm run test:unit` | Pruebas unitarias de validación y cola | `reports/unit-junit.xml` |
+| `npm run test:integration` | Pruebas de integración de persistencia y deduplicación | `reports/integration-junit.xml` |
+| `npm run test:coverage` | Suite completa con reporte de cobertura V8 | `reports/vitest-junit.xml`, `coverage/` |
+| `npm run test:e2e` | Pruebas E2E en Chromium con Playwright | `playwright-report/`, `test-results/` |
+| `npm run verify` o `make verify` | Verificación técnica global | `reports/verification.json` |
+
+### Capas implementadas
+1. **Unitarias (`tests/unit/`)**:
+   - `tests/unit/inspection-validation.spec.ts`: Validación de reglas de captura, fechas gregorianas reales, normalización y estados derivados.
+   - `tests/unit/queue-rules.spec.ts`: Reglas de encolado, protección de duplicados, stale items e idempotencia en cliente y servidor.
+2. **Integración (`tests/integration/`)**:
+   - `tests/integration/offline-persistence.spec.ts`: Persistencia en `localStorage` y recarga sin red.
+   - `tests/integration/sync-deduplication.spec.ts`: Sincronización contra el endpoint `POST /api/inspecciones`, control de reintentos y deduplicación con fixtures.
+3. **E2E (`tests/e2e/`)**:
+   - `tests/e2e/flujo-offline.e2e.ts`: Flujo completo en navegador real (crear → guardar offline → recargar → reconectar → sincronizar sin duplicar) y variante con geolocalización denegada.
+4. **Estrategia y CI**:
+   - Documentación en `docs/test-strategy.md`.
+   - Workflow automatizado en `.github/workflows/academic-evaluation.yml`.
