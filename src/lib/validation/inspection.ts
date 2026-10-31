@@ -54,7 +54,7 @@ function asText(value: unknown): string {
 /** Acepta 2 o "2"; rechaza 1.5, "", "abc", -1. Devuelve null si no es válido. */
 function asWholeNumber(value: unknown): number | null {
   if (typeof value === "number") {
-    return Number.isInteger(value) ? value : null;
+    return Number.isInteger(value) && value >= 0 ? value : null;
   }
   if (typeof value === "string" && /^\d+$/.test(value.trim())) {
     return Number(value.trim());
