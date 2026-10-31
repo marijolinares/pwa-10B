@@ -233,12 +233,17 @@
 
 ---------------------------------------------------------------------------------------------
 
-# Evidencia individual — Semana 9 (modelo de amenazas y privacidad)
+# Evidencia individual · semana 9 (modelo de amenazas y privacidad)
 
 ## Integrante: Irvin Isael Martínez Alejo
 
 - Estudiante: Irvin Isael Martínez Alejo
-- Commit SHA evaluado: 3cd99fd
+- Commit SHA evaluado: b1786d6 (último commit de mi rama antes de esta corrección; el SHA final común se entrega en Classroom)
 - Mi contribución concreta y enlace a archivo, commit anterior o revisión: Creé `src/lib/security/headers.ts` con `buildCsp()` y `securityHeaders()`; `src/middleware.ts`, que aplica esos headers a las respuestas; ajusté `next.config.mjs` (`poweredByHeader: false` y `Cache-Control: no-cache` para `/sw.js`); creé `public/robots.txt`, agregué el workflow del kit `.github/workflows/week-09-w09-security-privacy.yml` y redacté `docs/threat-model.md`. A pedido del líder borré la copia sobrante `src/lib/server_viejo/inspection-store.ts`. Mi PR es el #31, de la rama `irvin/w09-headers-threat-model` hacia `develop-new`.
 - Decisión que puedo explicar y por qué: Apliqué los headers desde `src/middleware.ts` y no desde `next.config.mjs`, porque en Next 14 el archivo de configuración es `.mjs` y no puede importar un módulo `.ts`. Así `securityHeaders()` es la única fuente de verdad. También dejé `geolocation=(self)` y `camera=(self)` en la Permissions-Policy porque la app usa esas capacidades desde la Semana 6; bloquearlas con `()` rompería funcionalidad existente.
 - Comando o prueba proporcionada que ejecuté: `npm ci` y `npm run verify`, además de `npm run dev` revisando la consola y la pestaña Network del navegador.
+- Resultado real que observé: `npm run verify` terminó en "pass": lint y typecheck sin errores, Vitest pasó 107 pruebas en 7 archivos y el build de Next.js compiló sin errores, con `ƒ Middleware` en la lista de rutas.
+- Qué verifica esa prueba y qué no verifica: `npm run verify` comprueba lint, tipos, pruebas y build. Los valores que devuelven `buildCsp()` y `securityHeaders()` los cubre el bloque "CSP y headers" de `tests/security.spec.ts`, escrito por Majo. No verifica que un navegador real respete la política, que no se bloquee algún recurso en todos los dispositivos, ni el comportamiento en producción con HTTPS.
+- Limitación, dificultad o riesgo que identifiqué: La CSP necesita `'unsafe-inline'` en `script-src` porque Next inyecta scripts inline, lo que debilita la protección contra XSS; la mejora sería usar nonces por request en el middleware. Además, `npm audit` quedó como paso informativo en CI porque el starter trae vulnerabilidades altas en dependencias. Como dificultad real, mi primer push falló en GitHub Actions porque el workflow exigía `public/robots.txt` y `docs/threat-model.md` y todavía no estaban en el commit. Después, Git rechazó dos pushes seguidos porque la rama remota tenía commits que yo no tenía, y tuve que traerlos con `git pull`. Al final el líder detectó que el workflow del kit y mi evidencia completa no habían quedado en la rama, así que me envió los archivos corregidos y los copié sobre mi proyecto.
+- Cambio que podría defender o modificar en vivo: Cambiar `frame-ancestors 'none'` por `'self'` en `buildCsp()` de `src/lib/security/headers.ts`, reiniciar `npm run dev` y comprobar en Response Headers que la directiva cambió en el header Content-Security-Policy.
+- Uso declarado de IA (herramienta, propósito, validación): Usé Claude para planear los pasos de mi parte, generar un borrador de `headers.ts`, `middleware.ts`, el workflow y la plantilla del modelo de amenazas, y para detectar que `next.config.mjs` no puede importar `.ts`. Validé el resultado ejecutando `npm run verify` y probando la app con `npm run dev`. Puedo explicar y modificar cada parte; el quiz es sin IA.
